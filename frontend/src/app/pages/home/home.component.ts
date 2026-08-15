@@ -1,17 +1,20 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { DatabaseHealthResponse, HealthResponse } from '../../models/health.model';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css',
 })
 export class HomeComponent implements OnInit {
   private readonly apiService = inject(ApiService);
+  readonly authService = inject(AuthService);
 
   // Reactive state signals
   readonly backendLoading = signal<boolean>(false);
@@ -81,5 +84,9 @@ export class HomeComponent implements OnInit {
 
   togglePayloads(): void {
     this.showPayloads.update((prev) => !prev);
+  }
+
+  onLogout(): void {
+    this.authService.logout('/');
   }
 }
