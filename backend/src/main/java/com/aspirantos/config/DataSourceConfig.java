@@ -20,19 +20,19 @@ public class DataSourceConfig {
     @Value("${spring.datasource.url:#{null}}")
     private String rawDatasourceUrl;
 
-    @Value("${DB_HOST:localhost}")
+    @Value("${DB_HOST:#{null}}")
     private String dbHost;
 
-    @Value("${DB_PORT:5432}")
+    @Value("${DB_PORT:#{null}}")
     private String dbPort;
 
-    @Value("${DB_NAME:aspirantos}")
+    @Value("${DB_NAME:#{null}}")
     private String dbName;
 
-    @Value("${DB_USERNAME:postgres}")
+    @Value("${DB_USERNAME:#{null}}")
     private String dbUsername;
 
-    @Value("${DB_PASSWORD:2516}")
+    @Value("${DB_PASSWORD:#{null}}")
     private String dbPassword;
 
     @Bean
@@ -47,16 +47,24 @@ public class DataSourceConfig {
         config.setMaxLifetime(1800000);
         config.setInitializationFailTimeout(-1);
 
-        String envDatabaseUrl = System.getenv("DATABASE_URL");
-        String finalUrl = null;
-        String finalUser = dbUsername;
-        String finalPassword = dbPassword;
+        // Check environment variables in order of cloud standard preference
+        String envUrl = System.getenv("DATABASE_URL");
+        if (envUrl == null || envUrl.isBlank()) {
+            envUrl = System.getenv("DATABASE_PUBLIC_URL");
+        }
+        if (envUrl == null || envUrl.isBlank()) {
+            envUrl = System.getenv("SPRING_DATASOURCE_URL");
+        }
 
-        if (envDatabaseUrl != null && !envDatabaseUrl.isBlank()) {
-            log.info("Detected DATABASE_URL environment variable from cloud provider");
-            if (envDatabaseUrl.startsWith("postgres://") || envDatabaseUrl.startsWith("postgresql://")) {
+        String finalUrl = null;
+        String finalUser = System.getenv("PGUSER") != null ? System.getenv("PGUSER") : (dbUsername != null ? dbUsername : "postgres");
+        String finalPassword = System.getenv("PGPASSWORD") != null ? System.getenv("PGPASSWORD") : (dbPassword != null ? dbPassword : "2516");
+
+        if (envUrl != null && !envUrl.isBlank()) {
+            log.info("Detected cloud DATABASE_URL environment variable");
+            if (envUrl.startsWith("postgres://") || envUrl.startsWith("postgresql://")) {
                 try {
-                    URI uri = URI.create(envDatabaseUrl);
+                    URI uri = URI.create(envUrl);
                     String host = uri.getHost();
                     int port = uri.getPort() > 0 ? uri.getPort() : 5432;
                     String path = uri.getPath();
@@ -74,21 +82,24 @@ public class DataSourceConfig {
                     String sslParam = isInternal ? "sslmode=prefer" : "sslmode=require";
                     finalUrl = String.format("jdbc:postgresql://%s:%d/%s?%s", host, port, path, sslParam);
                 } catch (Exception e) {
-                    log.warn("Failed to parse DATABASE_URL as URI, using as-is: {}", e.getMessage());
-                    finalUrl = envDatabaseUrl;
+                    log.warn("Failed to parse DATABASE_URL as URI: {}", e.getMessage());
+                    finalUrl = envUrl;
                 }
-            } else if (envDatabaseUrl.startsWith("jdbc:postgresql://")) {
-                finalUrl = envDatabaseUrl;
+            } else if (envUrl.startsWith("jdbc:postgresql://")) {
+                finalUrl = envUrl;
             }
         }
 
         if (finalUrl == null) {
-            boolean isLocal = "localhost".equalsIgnoreCase(dbHost) || "127.0.0.1".equals(dbHost) || "database".equalsIgnoreCase(dbHost);
+            String host = System.getenv("PGHOST") != null ? System.getenv("PGHOST") : (dbHost != null ? dbHost : "localhost");
+            String port = System.getenv("PGPORT") != null ? System.getenv("PGPORT") : (dbPort != null ? dbPort : "5432");
+            String db = System.getenv("PGDATABASE") != null ? System.getenv("PGDATABASE") : (dbName != null ? dbName : "aspirantos");
+            boolean isLocal = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "database".equalsIgnoreCase(host);
             String sslParam = isLocal ? "sslmode=prefer" : "sslmode=require";
-            finalUrl = String.format("jdbc:postgresql://%s:%s/%s?%s", dbHost, dbPort, dbName, sslParam);
+            finalUrl = String.format("jdbc:postgresql://%s:%s/%s?%s", host, port, db, sslParam);
         }
 
-        log.info("Configuring PostgreSQL DataSource for host target: {}", finalUrl.replaceAll(":[^:@]+@", ":****@"));
+        log.info("Connecting PostgreSQL DataSource to: {}", finalUrl.replaceAll(":[^:@]+@", ":****@"));
         config.setJdbcUrl(finalUrl);
         config.setUsername(finalUser);
         config.setPassword(finalPassword);
