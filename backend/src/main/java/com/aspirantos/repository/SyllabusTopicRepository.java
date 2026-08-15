@@ -20,4 +20,8 @@ public interface SyllabusTopicRepository extends JpaRepository<SyllabusTopic, UU
     Optional<SyllabusTopic> findByCodeIgnoreCase(String code);
 
     boolean existsByCodeIgnoreCase(String code);
+
+    long countBySubjectId(UUID subjectId);
+
+    long countBySubject_Exam_Stage(com.aspirantos.entity.ExamStage stage);
 }

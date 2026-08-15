@@ -186,9 +186,37 @@ VALUES
     ('d0000000-0000-0000-0000-000000000008', 'OPT_PHIL', 'Philosophy', 'Western philosophy, Indian philosophy, socio-political philosophy, and philosophy of religion.', 8)
 ON CONFLICT (code) DO NOTHING;
 
--- 8. Record schema versioning
+-- 8. Record schema versioning for Step 3
 INSERT INTO _schema_version (version, description)
 SELECT '1.2.0', 'Step 3: UPSC Syllabus & Subject Architecture Schema & Seed Data'
 WHERE NOT EXISTS (
     SELECT 1 FROM _schema_version WHERE version = '1.2.0'
 );
+
+-- ==============================================================================
+-- Step 4: UPSC Syllabus Completion Tracking Tables
+-- ==============================================================================
+
+-- 9. User Topic Progress Table
+CREATE TABLE IF NOT EXISTS user_topic_progress (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    topic_id UUID NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+    status VARCHAR(30) NOT NULL CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_user_topic UNIQUE (user_id, topic_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_progress_user ON user_topic_progress (user_id);
+CREATE INDEX IF NOT EXISTS idx_progress_topic ON user_topic_progress (topic_id);
+CREATE INDEX IF NOT EXISTS idx_progress_user_topic ON user_topic_progress (user_id, topic_id);
+CREATE INDEX IF NOT EXISTS idx_progress_status ON user_topic_progress (status);
+
+-- 10. Record schema versioning for Step 4
+INSERT INTO _schema_version (version, description)
+SELECT '1.3.0', 'Step 4: UPSC Syllabus Completion Tracking Schema'
+WHERE NOT EXISTS (
+    SELECT 1 FROM _schema_version WHERE version = '1.3.0'
+);
+

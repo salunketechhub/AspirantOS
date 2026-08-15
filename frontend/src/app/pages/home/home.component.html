@@ -9,9 +9,6 @@
         </div>
         <div>
           <span class="font-display font-bold text-xl tracking-tight text-white">Aspirant<span class="text-emerald-400">OS</span></span>
-          <span class="hidden sm:inline-block ml-3 px-2 py-0.5 text-xs font-medium text-slate-400 bg-slate-800/80 rounded border border-slate-700/60">
-            Step 3 · UPSC Syllabus Architecture
-          </span>
         </div>
       </div>
 
@@ -43,7 +40,7 @@
             id="nav-syllabus-link"
             class="px-3.5 py-1.5 rounded-md text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-colors shadow-sm font-display"
           >
-            Syllabus Explorer
+            Syllabus Tracker
           </a>
           <a
             routerLink="/dashboard"
@@ -61,220 +58,140 @@
           </button>
         </ng-container>
 
-        <!-- Status Re-check button -->
-        <button
-          id="refresh-health-btn"
-          (click)="refreshAllHealth()"
-          [disabled]="backendLoading() || dbLoading()"
-          class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 bg-slate-800/60 hover:bg-slate-700 active:scale-95 transition-all border border-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ml-2"
-        >
-          <svg *ngIf="backendLoading() || dbLoading()" class="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-          </svg>
-          <svg *ngIf="!backendLoading() && !dbLoading()" class="mr-1.5 h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-          </svg>
-          <span>{{ (backendLoading() || dbLoading()) ? 'Checking...' : 'Check Status' }}</span>
-        </button>
-
       </div>
     </div>
   </header>
 
-  <!-- Main Hero & Status Section -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
+  <!-- Hero Section -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-16 flex flex-col justify-center">
 
-    <!-- Hero Title -->
-    <div class="text-center max-w-3xl mx-auto mb-12">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-xs font-medium tracking-wide uppercase mb-5">
+    <!-- Hero Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-xs font-medium tracking-wide uppercase mb-6">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
         UPSC Preparation Command Center
       </div>
 
-      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-4">
-        Aspirant<span class="text-emerald-400">OS</span>
+      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-5">
+        Plan. Study. <span class="text-emerald-400">Revise.</span> Track.
       </h1>
 
-      <p class="text-lg sm:text-xl text-slate-300 font-light tracking-wide max-w-xl mx-auto">
-        <span class="text-slate-100 font-medium">Plan.</span> Study. <span class="text-slate-100 font-medium">Revise.</span> Track.
+      <p class="text-base sm:text-lg text-slate-300 font-normal max-w-2xl mx-auto leading-relaxed">
+        Structured syllabus completion tracking for the UPSC Civil Services Examination. Track topics across Prelims, Mains, and Sociology Optional with live completion analytics.
       </p>
 
-      <p class="mt-3 text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
-        Full-stack architectural foundation built with modern Angular 20+, Spring Boot 3.4+, Spring Security JWT, and PostgreSQL.
-      </p>
-
-      <!-- CTA Buttons -->
+      <!-- Action Buttons -->
       <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <a
-          *ngIf="!authService.isAuthenticated()"
-          routerLink="/register"
-          class="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-950/40 cursor-pointer font-display"
-        >
-          Get Started Free
-        </a>
-        <a
-          *ngIf="!authService.isAuthenticated()"
-          routerLink="/login"
-          class="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 transition-all border border-slate-700 cursor-pointer"
-        >
-          Sign In
-        </a>
-        <a
-          *ngIf="authService.isAuthenticated()"
-          routerLink="/dashboard"
-          class="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-950/40 cursor-pointer font-display"
-        >
-          Go to Command Center →
-        </a>
+        <ng-container *ngIf="!authService.isAuthenticated()">
+          <a
+            routerLink="/register"
+            class="px-6 py-3 rounded-xl text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-950/50 cursor-pointer font-display"
+          >
+            Start Tracking Free →
+          </a>
+          <a
+            routerLink="/login"
+            class="px-6 py-3 rounded-xl text-sm font-semibold text-slate-200 bg-slate-900 hover:bg-slate-850 transition-all border border-slate-700/80 cursor-pointer"
+          >
+            Sign In to Account
+          </a>
+        </ng-container>
+
+        <ng-container *ngIf="authService.isAuthenticated()">
+          <a
+            routerLink="/syllabus"
+            class="px-6 py-3 rounded-xl text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-950/50 cursor-pointer font-display"
+          >
+            Open Syllabus Tracker →
+          </a>
+          <a
+            routerLink="/dashboard"
+            class="px-6 py-3 rounded-xl text-sm font-semibold text-slate-200 bg-slate-900 hover:bg-slate-850 transition-all border border-slate-700/80 cursor-pointer"
+          >
+            View My Progress Dashboard
+          </a>
+        </ng-container>
       </div>
     </div>
 
-    <!-- Health Status Cards Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full mb-10">
+    <!-- Feature Pillars Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
 
-      <!-- Backend Health Card -->
-      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 shadow-lg shadow-black/40 flex flex-col justify-between hover:border-slate-700/80 transition-colors">
+      <!-- Prelims Pillar -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:border-slate-700 transition-colors">
         <div>
           <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-2.5">
-              <div class="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
-                </svg>
-              </div>
-              <div>
-                <h2 class="font-display font-semibold text-base text-white">Spring Boot Backend</h2>
-                <span class="text-xs font-mono text-slate-400">GET /api/health</span>
-              </div>
-            </div>
-
-            <!-- Status Pill -->
-            <div>
-              <span *ngIf="backendLoading()" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping mr-1.5"></span>
-                Checking...
-              </span>
-
-              <span *ngIf="!backendLoading() && backendData()?.status === 'UP'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
-                🟢 Connected
-              </span>
-
-              <span *ngIf="!backendLoading() && (!backendData() || backendData()?.status !== 'UP')" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-400 mr-1.5"></span>
-                🔴 Disconnected
-              </span>
-            </div>
+            <span class="px-2.5 py-1 bg-emerald-950/80 text-emerald-300 font-mono text-xs rounded border border-emerald-800/60 font-semibold">
+              PRELIMS
+            </span>
+            <span class="text-xs text-slate-500 font-mono">GS1 + CSAT</span>
           </div>
 
-          <!-- Message -->
-          <div class="bg-slate-950/60 rounded-lg p-3.5 border border-slate-800/80 mb-4 text-xs font-mono">
-            <div class="text-slate-400 mb-1">Response:</div>
-            <div *ngIf="backendData()" class="text-emerald-300">
-              {{ backendData()?.message }}
-            </div>
-            <div *ngIf="backendError()" class="text-rose-300 break-all">
-              {{ backendError() }}
-            </div>
-            <div *ngIf="!backendData() && !backendError()" class="text-slate-500 italic">
-              Awaiting health check response...
-            </div>
-          </div>
+          <h3 class="font-display font-bold text-lg text-white mb-2">
+            Screening Stage
+          </h3>
+
+          <p class="text-xs text-slate-400 leading-relaxed">
+            12 core focus areas across Ancient, Medieval, Modern History, Art & Culture, Physical/Indian Geography, Polity, Economy, Ecology, Science & CSAT Paper II.
+          </p>
         </div>
 
-        <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-800/60">
-          <span>Port: <strong class="text-slate-400 font-mono">8080</strong></span>
-          <span>Checked: <strong class="text-slate-400 font-mono">{{ backendTimestamp() ? (backendTimestamp() | date:'mediumTime') : '—' }}</strong></span>
+        <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+          <span>Objective Mode</span>
+          <a routerLink="/syllabus" class="text-emerald-400 hover:text-emerald-300 font-medium">Explore Stage →</a>
         </div>
       </div>
 
-      <!-- Database Health Card -->
-      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 shadow-lg shadow-black/40 flex flex-col justify-between hover:border-slate-700/80 transition-colors">
+      <!-- Mains Pillar -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:border-slate-700 transition-colors">
         <div>
           <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-2.5">
-              <div class="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
-                </svg>
-              </div>
-              <div>
-                <h2 class="font-display font-semibold text-base text-white">PostgreSQL Database</h2>
-                <span class="text-xs font-mono text-slate-400">GET /api/health/db</span>
-              </div>
-            </div>
-
-            <!-- Status Pill -->
-            <div>
-              <span *ngIf="dbLoading()" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping mr-1.5"></span>
-                Checking...
-              </span>
-
-              <span *ngIf="!dbLoading() && dbData()?.status === 'UP'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
-                🟢 Connected
-              </span>
-
-              <span *ngIf="!dbLoading() && (!dbData() || dbData()?.status !== 'UP')" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/30">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-400 mr-1.5"></span>
-                🔴 Disconnected
-              </span>
-            </div>
+            <span class="px-2.5 py-1 bg-emerald-950/80 text-emerald-300 font-mono text-xs rounded border border-emerald-800/60 font-semibold">
+              MAINS
+            </span>
+            <span class="text-xs text-slate-500 font-mono">1750 Marks</span>
           </div>
 
-          <!-- Message -->
-          <div class="bg-slate-950/60 rounded-lg p-3.5 border border-slate-800/80 mb-4 text-xs font-mono">
-            <div class="text-slate-400 mb-1">Response:</div>
-            <div *ngIf="dbData()?.status === 'UP'" class="text-emerald-300">
-              {{ dbData()?.message }}
-            </div>
-            <div *ngIf="dbError()" class="text-rose-300 break-all">
-              {{ dbError() }}
-            </div>
-            <div *ngIf="!dbData() && !dbError()" class="text-slate-500 italic">
-              Awaiting database health check...
-            </div>
-          </div>
+          <h3 class="font-display font-bold text-lg text-white mb-2">
+            Written Merit Architecture
+          </h3>
+
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Unit-wise tracking across Essay, GS I (12 units), GS II (20 units), GS III (20 units), and GS IV (8 units with Ethics & Case Studies).
+          </p>
         </div>
 
-        <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-800/60">
-          <span>Target: <strong class="text-slate-400 font-mono">aspirantos:5432</strong></span>
-          <span>Checked: <strong class="text-slate-400 font-mono">{{ dbTimestamp() ? (dbTimestamp() | date:'mediumTime') : '—' }}</strong></span>
+        <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+          <span>Descriptive Units</span>
+          <a routerLink="/syllabus" class="text-emerald-400 hover:text-emerald-300 font-medium">Explore Stage →</a>
         </div>
       </div>
 
-    </div>
-
-    <!-- Diagnostic Details Drawer (Collapsible) -->
-    <div class="max-w-4xl mx-auto w-full">
-      <div class="border border-slate-800 rounded-xl bg-slate-900/40 overflow-hidden">
-        <button
-          id="toggle-payloads-btn"
-          (click)="togglePayloads()"
-          class="w-full px-5 py-3.5 text-left flex items-center justify-between text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-colors cursor-pointer"
-        >
-          <span class="flex items-center space-x-2">
-            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-            </svg>
-            <span>Raw System Payloads & Request Diagnostics</span>
-          </span>
-          <span class="text-slate-500">{{ showPayloads() ? '▲ Hide' : '▼ View JSON' }}</span>
-        </button>
-
-        <div *ngIf="showPayloads()" class="p-5 border-t border-slate-800 bg-slate-950/80 space-y-4">
-          <div>
-            <div class="text-xs font-semibold text-slate-400 mb-1.5">Backend Payload (/api/health)</div>
-            <pre class="bg-slate-900 border border-slate-800 rounded p-3 text-xs font-mono text-emerald-400 overflow-x-auto">{{ backendData() | json }}</pre>
+      <!-- Sociology Optional Pillar -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:border-slate-700 transition-colors">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="px-2.5 py-1 bg-emerald-950/80 text-emerald-300 font-mono text-xs rounded border border-emerald-800/60 font-semibold">
+              OPTIONALS
+            </span>
+            <span class="text-xs text-slate-500 font-mono">500 Marks</span>
           </div>
-          <div>
-            <div class="text-xs font-semibold text-slate-400 mb-1.5">Database Payload (/api/health/db)</div>
-            <pre class="bg-slate-900 border border-slate-800 rounded p-3 text-xs font-mono text-slate-300 overflow-x-auto">{{ (dbData() || { status: 'DOWN', error: dbError() }) | json }}</pre>
-          </div>
+
+          <h3 class="font-display font-bold text-lg text-white mb-2">
+            Sociology Optional Tracker
+          </h3>
+
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Drishti IAS official syllabus with Paper I (Fundamentals, 10 topics) & Paper II (Indian Society, 15 topics across Parts A, B, C) plus full Optional Catalogue.
+          </p>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+          <span>Paper I & II</span>
+          <a routerLink="/syllabus" class="text-emerald-400 hover:text-emerald-300 font-medium">Explore Stage →</a>
         </div>
       </div>
+
     </div>
 
   </main>
@@ -283,14 +200,12 @@
   <footer class="border-t border-slate-800/80 bg-slate-900/40 px-6 py-6 mt-12">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
       <div>
-        <span class="font-semibold text-slate-400">AspirantOS</span> — Step 2 Authentication & User Management
+        <span class="font-semibold text-slate-400">AspirantOS</span> — Plan. Study. Revise. Track.
       </div>
       <div class="flex items-center space-x-4">
-        <span>Angular 20</span>
+        <a routerLink="/syllabus" class="hover:text-slate-300">Syllabus</a>
         <span>•</span>
-        <span>Spring Boot 3.4</span>
-        <span>•</span>
-        <span>PostgreSQL</span>
+        <a routerLink="/dashboard" class="hover:text-slate-300">Dashboard</a>
       </div>
     </div>
   </footer>

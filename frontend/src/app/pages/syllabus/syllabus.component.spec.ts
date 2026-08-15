@@ -1,16 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SyllabusComponent } from './syllabus.component';
 import { SyllabusService } from '../../services/syllabus.service';
+import { ProgressService } from '../../services/progress.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ExamResponse, OptionalSubjectResponse, SubjectResponse, TopicResponse } from '../../models/syllabus.models';
+import { TopicProgressResponse } from '../../models/progress.models';
 import { signal } from '@angular/core';
 
 describe('SyllabusComponent', () => {
   let component: SyllabusComponent;
   let fixture: ComponentFixture<SyllabusComponent>;
   let syllabusServiceMock: jasmine.SpyObj<SyllabusService>;
+  let progressServiceMock: jasmine.SpyObj<ProgressService>;
   let authServiceMock: any;
 
   const mockExam: ExamResponse = {
@@ -92,10 +95,24 @@ describe('SyllabusComponent', () => {
       'getOptionals',
     ]);
 
+    progressServiceMock = jasmine.createSpyObj('ProgressService', [
+      'getAllProgressMap',
+      'getTopicProgress',
+      'updateTopicProgress',
+      'getSubjectProgress',
+      'getOverallProgress',
+    ]);
+
     syllabusServiceMock.getExams.and.returnValue(of([mockExam, mockMainsExam]));
     syllabusServiceMock.getSubjectsByExam.and.returnValue(of([mockSubject]));
     syllabusServiceMock.getTopicsBySubject.and.returnValue(of([mockTopic]));
     syllabusServiceMock.getOptionals.and.returnValue(of([mockOptional]));
+
+    progressServiceMock.getAllProgressMap.and.returnValue(
+      of({
+        'c0000000-0000-0000-0000-000000000001': 'COMPLETED',
+      })
+    );
 
     authServiceMock = {
       userName: signal('Aarav Sharma'),
@@ -107,6 +124,7 @@ describe('SyllabusComponent', () => {
       imports: [SyllabusComponent],
       providers: [
         { provide: SyllabusService, useValue: syllabusServiceMock },
+        { provide: ProgressService, useValue: progressServiceMock },
         { provide: AuthService, useValue: authServiceMock },
         provideRouter([]),
       ],
@@ -126,6 +144,40 @@ describe('SyllabusComponent', () => {
     expect(component.selectedExam()?.code).toBe('PRELIMS');
     expect(component.selectedSubject()?.code).toBe('PRELIMS_GS1');
     expect(component.topics().length).toBe(1);
+  });
+
+  it('should display correct progress status for topics', () => {
+    // Topic 1 was seeded as COMPLETED in progressServiceMock
+    expect(component.getTopicStatus('c0000000-0000-0000-0000-000000000001')).toBe('COMPLETED');
+    // Subtopic 2 was unseeded and should default to NOT_STARTED
+    expect(component.getTopicStatus('c0000000-0000-0000-0000-000000000002')).toBe('NOT_STARTED');
+  });
+
+  it('should call progressService.updateTopicProgress when status is changed', () => {
+    const subtopicId = 'c0000000-0000-0000-0000-000000000002';
+    const mockUpdateResponse: TopicProgressResponse = {
+      topicId: subtopicId,
+      topicCode: 'PGS1_POLITY_CONST',
+      topicName: 'Constitutional Framework',
+      status: 'IN_PROGRESS',
+      subjectId: 'b0000000-0000-0000-0000-000000000001',
+      subjectCode: 'PRELIMS_GS1',
+      subjectName: 'General Studies Paper I',
+    };
+
+    progressServiceMock.updateTopicProgress.and.returnValue(of(mockUpdateResponse));
+
+    component.onStatusChange(subtopicId, 'IN_PROGRESS');
+
+    expect(progressServiceMock.updateTopicProgress).toHaveBeenCalledWith(subtopicId, 'IN_PROGRESS');
+    expect(component.getTopicStatus(subtopicId)).toBe('IN_PROGRESS');
+  });
+
+  it('should dynamically update subject completion percentage', () => {
+    // 2 total topics: 1 completed, 0 in progress -> 50%
+    expect(component.subjectTotalTopics()).toBe(2);
+    expect(component.subjectCompletedTopics()).toBe(1);
+    expect(component.subjectCompletionPercentage()).toBe(50);
   });
 
   it('should toggle topic expansion', () => {

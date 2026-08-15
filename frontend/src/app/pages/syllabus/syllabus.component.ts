@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SyllabusService } from '../../services/syllabus.service';
+import { ProgressService } from '../../services/progress.service';
 import { AuthService } from '../../core/auth/auth.service';
 import {
   ExamResponse,
@@ -10,6 +11,7 @@ import {
   SubjectResponse,
   TopicResponse,
 } from '../../models/syllabus.models';
+import { ProgressStatus } from '../../models/progress.models';
 
 @Component({
   selector: 'app-syllabus',
@@ -20,6 +22,7 @@ import {
 })
 export class SyllabusComponent implements OnInit {
   private readonly syllabusService = inject(SyllabusService);
+  private readonly progressService = inject(ProgressService);
   readonly authService = inject(AuthService);
 
   // Core data signals
@@ -30,15 +33,19 @@ export class SyllabusComponent implements OnInit {
   readonly topics = signal<TopicResponse[]>([]);
   readonly optionals = signal<OptionalSubjectResponse[]>([]);
 
-  // Navigation & interaction signals
+  // User progress mapping signal: topicId -> ProgressStatus
+  readonly progressMap = signal<Record<string, ProgressStatus>>({});
+
+  // Navigation & interaction signals (3 main tabs: PRELIMS, MAINS, OPTIONALS)
   readonly activeTab = signal<'PRELIMS' | 'MAINS' | 'OPTIONALS'>('PRELIMS');
+  readonly optionalViewMode = signal<'SOCIOLOGY_TRACKER' | 'CATALOGUE'>('SOCIOLOGY_TRACKER');
   readonly searchQuery = signal<string>('');
-  readonly expandedTopicIds = signal<Set<string>>(new Set());
 
   // Status signals
   readonly isLoading = signal<boolean>(false);
   readonly isTopicsLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly updatingTopicId = signal<string | null>(null);
 
   // Computed filtered topics based on search
   readonly filteredTopics = computed(() => {
@@ -49,10 +56,15 @@ export class SyllabusComponent implements OnInit {
       return rawTopics;
     }
 
-    return this.filterTopicList(rawTopics, query);
+    return rawTopics.filter(
+      (topic) =>
+        topic.name.toLowerCase().includes(query) ||
+        topic.code.toLowerCase().includes(query) ||
+        (topic.description && topic.description.toLowerCase().includes(query))
+    );
   });
 
-  // Computed filtered optional subjects
+  // Computed filtered optional subjects catalogue
   readonly filteredOptionals = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
     const list = this.optionals();
@@ -69,9 +81,41 @@ export class SyllabusComponent implements OnInit {
     );
   });
 
+  // Flat list of all topic IDs in current subject
+  readonly allTopicIdsInSubject = computed(() => {
+    return this.topics().map((t) => t.id);
+  });
+
   // Total topics count in currently selected subject
-  readonly currentSubjectTopicCount = computed(() => {
-    return this.countTopicsRecursively(this.topics());
+  readonly subjectTotalTopics = computed(() => {
+    return this.allTopicIdsInSubject().length;
+  });
+
+  // Completed topics count in currently selected subject
+  readonly subjectCompletedTopics = computed(() => {
+    const map = this.progressMap();
+    return this.allTopicIdsInSubject().filter((id) => map[id] === 'COMPLETED').length;
+  });
+
+  // In-progress topics count in currently selected subject
+  readonly subjectInProgressTopics = computed(() => {
+    const map = this.progressMap();
+    return this.allTopicIdsInSubject().filter((id) => map[id] === 'IN_PROGRESS').length;
+  });
+
+  // Not started topics count in currently selected subject
+  readonly subjectNotStartedTopics = computed(() => {
+    const total = this.subjectTotalTopics();
+    const completed = this.subjectCompletedTopics();
+    const inProgress = this.subjectInProgressTopics();
+    return Math.max(0, total - completed - inProgress);
+  });
+
+  // Subject completion percentage
+  readonly subjectCompletionPercentage = computed(() => {
+    const total = this.subjectTotalTopics();
+    const completed = this.subjectCompletedTopics();
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
   });
 
   ngOnInit(): void {
@@ -82,12 +126,19 @@ export class SyllabusComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
+    // 1. Fetch user progress map in bulk
+    this.progressService.getAllProgressMap().subscribe({
+      next: (map) => this.progressMap.set(map || {}),
+      error: () => {},
+    });
+
+    // 2. Fetch Exams
     this.syllabusService.getExams().subscribe({
       next: (examsList) => {
         this.exams.set(examsList);
         this.isLoading.set(false);
 
-        // Find Prelims or default to first exam
+        // Default to Prelims
         const prelims = examsList.find((e) => e.code.toUpperCase() === 'PRELIMS') || examsList[0];
         if (prelims) {
           this.selectExam(prelims);
@@ -96,12 +147,12 @@ export class SyllabusComponent implements OnInit {
       error: (err) => {
         this.isLoading.set(false);
         this.errorMessage.set(
-          err?.error?.message || err?.message || 'Failed to load exam stages. Please check backend connection.'
+          err?.error?.message || err?.message || 'Failed to load syllabus. Please check backend connection.'
         );
       },
     });
 
-    // Preload Optionals Catalogue
+    // 3. Preload Optionals Catalogue
     this.syllabusService.getOptionals().subscribe({
       next: (opts) => this.optionals.set(opts),
       error: () => {},
@@ -112,22 +163,29 @@ export class SyllabusComponent implements OnInit {
     this.activeTab.set(tab);
     this.searchQuery.set('');
 
-    if (tab === 'OPTIONALS') {
-      this.selectedExam.set(null);
-      this.selectedSubject.set(null);
-      this.topics.set([]);
-      return;
-    }
+    const matchedCode = tab === 'OPTIONALS' ? 'OPTIONAL' : tab;
+    const matchedExam = this.exams().find((e) => e.code.toUpperCase() === matchedCode);
 
-    const matchedExam = this.exams().find((e) => e.code.toUpperCase() === tab);
     if (matchedExam) {
       this.selectExam(matchedExam);
     }
   }
 
+  setOptionalView(mode: 'SOCIOLOGY_TRACKER' | 'CATALOGUE'): void {
+    this.optionalViewMode.set(mode);
+    this.searchQuery.set('');
+  }
+
   selectExam(exam: ExamResponse): void {
     this.selectedExam.set(exam);
-    this.activeTab.set(exam.stage === 'PRELIMS' ? 'PRELIMS' : 'MAINS');
+    if (exam.code.toUpperCase() === 'PRELIMS') {
+      this.activeTab.set('PRELIMS');
+    } else if (exam.code.toUpperCase() === 'MAINS') {
+      this.activeTab.set('MAINS');
+    } else if (exam.code.toUpperCase() === 'OPTIONAL') {
+      this.activeTab.set('OPTIONALS');
+    }
+
     this.isTopicsLoading.set(true);
     this.errorMessage.set(null);
 
@@ -156,97 +214,44 @@ export class SyllabusComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.syllabusService.getTopicsBySubject(subject.id).subscribe({
-      next: (topicTree) => {
-        this.topics.set(topicTree);
-        // By default expand top-level nodes
-        const defaultExpanded = new Set<string>();
-        topicTree.forEach((t) => defaultExpanded.add(t.id));
-        this.expandedTopicIds.set(defaultExpanded);
+      next: (topicList) => {
+        this.topics.set(topicList);
         this.isTopicsLoading.set(false);
       },
       error: (err) => {
         this.isTopicsLoading.set(false);
-        this.errorMessage.set(err?.error?.message || 'Failed to load topic hierarchy.');
+        this.errorMessage.set(err?.error?.message || 'Failed to load topics.');
       },
     });
   }
 
-  toggleTopic(topicId: string): void {
-    this.expandedTopicIds.update((currentSet) => {
-      const next = new Set(currentSet);
-      if (next.has(topicId)) {
-        next.delete(topicId);
-      } else {
-        next.add(topicId);
-      }
-      return next;
+  getTopicStatus(topicId: string): ProgressStatus {
+    return this.progressMap()[topicId] || 'NOT_STARTED';
+  }
+
+  onStatusChange(topicId: string, newStatus: ProgressStatus): void {
+    const previousStatus = this.getTopicStatus(topicId);
+    if (previousStatus === newStatus) return;
+
+    // Optimistic UI mutation
+    this.progressMap.update((map) => ({ ...map, [topicId]: newStatus }));
+    this.updatingTopicId.set(topicId);
+
+    this.progressService.updateTopicProgress(topicId, newStatus).subscribe({
+      next: (res) => {
+        this.progressMap.update((map) => ({ ...map, [topicId]: res.status }));
+        this.updatingTopicId.set(null);
+      },
+      error: (err) => {
+        // Rollback on error
+        this.progressMap.update((map) => ({ ...map, [topicId]: previousStatus }));
+        this.updatingTopicId.set(null);
+        this.errorMessage.set(err?.error?.message || 'Failed to update topic status.');
+      },
     });
-  }
-
-  isExpanded(topicId: string): boolean {
-    return this.expandedTopicIds().has(topicId);
-  }
-
-  expandAll(): void {
-    const allIds = new Set<string>();
-    const collectIds = (items: TopicResponse[]) => {
-      for (const item of items) {
-        allIds.add(item.id);
-        if (item.subtopics && item.subtopics.length > 0) {
-          collectIds(item.subtopics);
-        }
-      }
-    };
-    collectIds(this.topics());
-    this.expandedTopicIds.set(allIds);
-  }
-
-  collapseAll(): void {
-    this.expandedTopicIds.set(new Set());
   }
 
   onLogout(): void {
     this.authService.logout('/login');
-  }
-
-  // --- Helper filter functions ---
-
-  private filterTopicList(list: TopicResponse[], query: string): TopicResponse[] {
-    const result: TopicResponse[] = [];
-
-    for (const topic of list) {
-      const nameMatch = topic.name.toLowerCase().includes(query);
-      const codeMatch = topic.code.toLowerCase().includes(query);
-      const descMatch = topic.description ? topic.description.toLowerCase().includes(query) : false;
-
-      const filteredSubtopics = topic.subtopics ? this.filterTopicList(topic.subtopics, query) : [];
-
-      if (nameMatch || codeMatch || descMatch || filteredSubtopics.length > 0) {
-        // Auto-expand matched parent
-        this.expandedTopicIds.update((set) => {
-          const next = new Set(set);
-          next.add(topic.id);
-          return next;
-        });
-
-        result.push({
-          ...topic,
-          subtopics: filteredSubtopics.length > 0 ? filteredSubtopics : topic.subtopics,
-        });
-      }
-    }
-
-    return result;
-  }
-
-  private countTopicsRecursively(list: TopicResponse[]): number {
-    let count = 0;
-    for (const t of list) {
-      count += 1;
-      if (t.subtopics && t.subtopics.length > 0) {
-        count += this.countTopicsRecursively(t.subtopics);
-      }
-    }
-    return count;
   }
 }

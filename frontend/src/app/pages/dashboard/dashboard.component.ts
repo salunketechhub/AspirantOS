@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { UserResponse } from '../../core/auth/auth.models';
+import { ProgressService } from '../../services/progress.service';
+import { OverallProgressResponse } from '../../models/progress.models';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,32 +14,28 @@ import { UserResponse } from '../../core/auth/auth.models';
 })
 export class DashboardComponent implements OnInit {
   readonly authService = inject(AuthService);
+  private readonly progressService = inject(ProgressService);
 
-  testProfileLoading = signal<boolean>(false);
-  testProfileData = signal<UserResponse | null>(null);
-  testProfileError = signal<string | null>(null);
-  testCheckedAt = signal<Date | null>(null);
+  readonly overallProgress = signal<OverallProgressResponse | null>(null);
+  readonly progressLoading = signal<boolean>(false);
+  readonly progressError = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.testMeEndpoint();
+    this.loadProgress();
   }
 
-  testMeEndpoint(): void {
-    this.testProfileLoading.set(true);
-    this.testProfileError.set(null);
+  loadProgress(): void {
+    this.progressLoading.set(true);
+    this.progressError.set(null);
 
-    this.authService.fetchCurrentUser().subscribe({
-      next: (user) => {
-        this.testProfileData.set(user);
-        this.testProfileError.set(null);
-        this.testCheckedAt.set(new Date());
-        this.testProfileLoading.set(false);
+    this.progressService.getOverallProgress().subscribe({
+      next: (data) => {
+        this.overallProgress.set(data);
+        this.progressLoading.set(false);
       },
       error: (err) => {
-        this.testProfileData.set(null);
-        this.testProfileError.set(err?.error?.message || err?.message || 'Failed to fetch /api/auth/me');
-        this.testCheckedAt.set(new Date());
-        this.testProfileLoading.set(false);
+        this.progressError.set(err?.error?.message || 'Failed to load progress summary.');
+        this.progressLoading.set(false);
       },
     });
   }

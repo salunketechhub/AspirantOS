@@ -25,18 +25,44 @@ public class SyllabusDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        Integer count = jdbcTemplate.queryForObject("SELECT count(*) FROM exams", Integer.class);
-        if (count != null && count > 0) {
-            log.info("Syllabus data already exists in database ({} exams found). Skipping seeder.", count);
-            return;
+        // Ensure user_topic_progress table exists
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS user_topic_progress (
+                    id UUID PRIMARY KEY,
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    topic_id UUID NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+                    status VARCHAR(30) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT uq_user_topic UNIQUE (user_id, topic_id)
+                )
+            """);
+        } catch (Exception e) {
+            log.debug("Table user_topic_progress check: {}", e.getMessage());
         }
 
-        log.info("Seeding initial UPSC Syllabus & Subject Architecture data via JDBC...");
+        log.info("Updating UPSC Syllabus with exact topic architecture from notes and Drishti IAS Sociology Optional...");
         Timestamp now = Timestamp.from(Instant.now());
 
-        // 1. Exams
+        // Refresh syllabus topics hierarchy and update constraints if needed
+        try {
+            jdbcTemplate.execute("ALTER TABLE exams DROP CONSTRAINT IF EXISTS exams_stage_check");
+            jdbcTemplate.execute("ALTER TABLE exams DROP CONSTRAINT IF EXISTS check_exam_stage");
+            jdbcTemplate.execute("ALTER TABLE exams ADD CONSTRAINT exams_stage_check CHECK (stage IN ('PRELIMS', 'MAINS', 'OPTIONAL', 'INTERVIEW'))");
+        } catch (Exception e) {
+            log.debug("Exams stage constraint update: {}", e.getMessage());
+        }
+
+        jdbcTemplate.execute("DELETE FROM user_topic_progress");
+        jdbcTemplate.execute("DELETE FROM syllabus_topics");
+        jdbcTemplate.execute("DELETE FROM subjects");
+        jdbcTemplate.execute("DELETE FROM exams");
+
+        // 1. Exams (Prelims, Mains, Optional)
         UUID prelimsId = UUID.fromString("a0000000-0000-0000-0000-000000000001");
         UUID mainsId = UUID.fromString("a0000000-0000-0000-0000-000000000002");
+        UUID optionalId = UUID.fromString("a0000000-0000-0000-0000-000000000003");
 
         jdbcTemplate.update(
                 "INSERT INTO exams (id, code, name, description, stage, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -48,159 +74,135 @@ public class SyllabusDataSeeder implements CommandLineRunner {
         jdbcTemplate.update(
                 "INSERT INTO exams (id, code, name, description, stage, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 mainsId, "MAINS", "UPSC Civil Services (Main) Examination",
-                "Written descriptive test consisting of Essay, 4 General Studies papers, and Optional papers.",
+                "Written descriptive examination: Essay, General Studies Papers I to IV.",
                 "MAINS", 2, now, now
         );
 
-        // 2. Prelims Subjects
+        jdbcTemplate.update(
+                "INSERT INTO exams (id, code, name, description, stage, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                optionalId, "OPTIONAL", "Optional Subjects",
+                "Specialized Optional Subject papers (Paper I & Paper II, 500 marks).",
+                "OPTIONAL", 3, now, now
+        );
+
+        // 2. Subjects
         UUID prelimsGs1Id = UUID.fromString("b0000000-0000-0000-0000-000000000001");
         UUID csatId = UUID.fromString("b0000000-0000-0000-0000-000000000002");
-
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                prelimsGs1Id, prelimsId, "PRELIMS_GS1", "General Studies Paper I",
-                "Current events, History of India, Geography, Polity, Governance, Economic Development, Environmental Ecology, and General Science.",
-                "Paper I", 1, now, now
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                csatId, prelimsId, "PRELIMS_CSAT", "CSAT / Paper II",
-                "Comprehension, interpersonal skills, logical reasoning, analytical ability, decision-making, and basic numeracy.",
-                "Paper II", 2, now, now
-        );
-
-        // 3. Mains Subjects
         UUID essayId = UUID.fromString("b0000000-0000-0000-0000-000000000003");
-        UUID mainsGs1Id = UUID.fromString("b0000000-0000-0000-0000-000000000004");
-        UUID mainsGs2Id = UUID.fromString("b0000000-0000-0000-0000-000000000005");
-        UUID mainsGs3Id = UUID.fromString("b0000000-0000-0000-0000-000000000006");
-        UUID mainsGs4Id = UUID.fromString("b0000000-0000-0000-0000-000000000007");
+        UUID gs1Id = UUID.fromString("b0000000-0000-0000-0000-000000000004");
+        UUID gs2Id = UUID.fromString("b0000000-0000-0000-0000-000000000005");
+        UUID gs3Id = UUID.fromString("b0000000-0000-0000-0000-000000000006");
+        UUID gs4Id = UUID.fromString("b0000000-0000-0000-0000-000000000007");
+        UUID socioP1Id = UUID.fromString("b0000000-0000-0000-0000-000000000008");
+        UUID socioP2Id = UUID.fromString("b0000000-0000-0000-0000-000000000009");
 
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                essayId, mainsId, "MAINS_ESSAY", "Essay",
-                "Candidates are required to write essays on multiple philosophical, socio-economic, and administrative themes.",
-                "Essay", 1, now, now
-        );
+        insertSubject(prelimsGs1Id, prelimsId, "PRELIMS_GS1", "General Studies Paper I", "Current events, History (Ancient, Medieval, Modern), Art & Culture, Geography, Polity, Economy, Environment, and General Science.", "Paper I", 1, now);
+        insertSubject(csatId, prelimsId, "PRELIMS_CSAT", "CSAT / Paper II", "Comprehension, Interpersonal skills, Logical reasoning, Analytical ability, Decision-making, General mental ability, and Basic numeracy.", "Paper II", 2, now);
 
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                mainsGs1Id, mainsId, "MAINS_GS1", "General Studies I",
-                "Indian Heritage and Culture, History and Geography of the World and Society.",
-                "GS Paper I", 2, now, now
-        );
+        insertSubject(essayId, mainsId, "MAINS_ESSAY", "Essay", "Theme-based descriptive essays across Education, Women, Environment, Health & Science, Polity, and Philosophical dimensions.", "Paper I", 1, now);
+        insertSubject(gs1Id, mainsId, "MAINS_GS1", "General Studies I", "Art & Culture, Modern History of India, Modern History of World, Indian Society, and Geography (12 Units).", "Paper II", 2, now);
+        insertSubject(gs2Id, mainsId, "MAINS_GS2", "General Studies II", "Indian Polity, Social Justice, Governance, and International Relations (20 Units).", "Paper III", 3, now);
+        insertSubject(gs3Id, mainsId, "MAINS_GS3", "General Studies III", "Indian Economy, Science and Technology, Ecology and Environment, Disaster Management, and Internal Security (20 Units).", "Paper IV", 4, now);
+        insertSubject(gs4Id, mainsId, "MAINS_GS4", "General Studies IV", "Ethics, Integrity and Aptitude - Public service values, moral thinkers, probity in governance, and case studies.", "Paper V", 5, now);
 
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                mainsGs2Id, mainsId, "MAINS_GS2", "General Studies II",
-                "Governance, Constitution, Polity, Social Justice and International Relations.",
-                "GS Paper II", 3, now, now
-        );
+        insertSubject(socioP1Id, optionalId, "OPT_SOCIO_P1", "Sociology Paper I", "Fundamentals of Sociology (10 Topics): Discipline, Science, Research Methods, Thinkers, Stratification, Works & Economic Life, Politics, Religion, Kinship, and Social Change.", "Paper I", 1, now);
+        insertSubject(socioP2Id, optionalId, "OPT_SOCIO_P2", "Sociology Paper II", "Indian Society: Structure and Change (15 Topics across Parts A, B, C): Perspectives, Colonial Rule, Caste, Tribes, Classes, Kinship, Religion, Rural Transformation, Urbanization, Politics, Movements, Population, and Challenges.", "Paper II", 2, now);
 
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                mainsGs3Id, mainsId, "MAINS_GS3", "General Studies III",
-                "Technology, Economic Development, Biodiversity, Environment, Security and Disaster Management.",
-                "GS Paper III", 4, now, now
-        );
+        // 3. Topics (Flat Architecture)
 
-        jdbcTemplate.update(
-                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                mainsGs4Id, mainsId, "MAINS_GS4", "General Studies IV",
-                "Ethics, Integrity, and Aptitude.",
-                "GS Paper IV", 5, now, now
-        );
+        // --- PRELIMS GS1 (12 Core Focus Topics) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000001"), prelimsGs1Id, "PGS_ANC_HIST", "Ancient Indian History", "Prehistoric cultures, Indus Valley Civilization, Vedic period, Mahajanapadas, Mauryan Empire, Gupta Empire, and South Indian dynasties.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000002"), prelimsGs1Id, "PGS_MED_HIST", "Medieval Indian History", "Early medieval period, Delhi Sultanate, Vijayanagara Empire, Bhakti and Sufi movements, Mughal Empire, and Marathas.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000003"), prelimsGs1Id, "PGS_MOD_HIST", "Modern Indian History & Freedom Struggle", "Advent of Europeans, British expansion, Revolt of 1857, Socio-religious reform movements, Indian National Congress, Gandhian era, and Independence.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000004"), prelimsGs1Id, "PGS_ART_CUL", "Art & Culture", "Indian architecture, sculpture, paintings, classical dances, music, puppetry, festivals, literature, and UNESCO heritage sites.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000005"), prelimsGs1Id, "PGS_PHY_GEO", "Physical Geography", "Solar system, Earth's interior, plate tectonics, geomorphology, climatology, oceanography, and biogeography.", 1, 5, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000006"), prelimsGs1Id, "PGS_IND_GEO", "Indian Geography", "Physiography of India, drainage systems (Himalayan & Peninsular), Indian monsoon, climate, soil, vegetation, and water resources.", 1, 6, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000007"), prelimsGs1Id, "PGS_HUM_GEO", "Human & Economical Geography", "Population distribution, migration, urbanization, agriculture patterns, mineral & energy resources, industries, and transport networks.", 1, 7, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000008"), prelimsGs1Id, "PGS_POLITY", "Indian Polity & Governance", "Constitutional framework, Fundamental Rights & Duties, Parliament, Executive, Judiciary, Federalism, Panchayati Raj, and Public Policy.", 1, 8, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000009"), prelimsGs1Id, "PGS_ECON", "Indian Economy & Social Development", "National Income, Inflation, Monetary Policy (RBI), Fiscal Policy & Budgeting, Banking, Financial Markets, External Sector, and Poverty Inclusion.", 1, 9, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000010"), prelimsGs1Id, "PGS_ENV", "Ecology & Environment", "Ecosystem concepts, biodiversity conservation (National Parks, Sanctuaries), climate change protocols, environmental conventions, and pollution.", 1, 10, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000011"), prelimsGs1Id, "PGS_SCI", "Science & Technology", "Everyday physics, chemistry, biology; space missions (ISRO), defense technologies, biotechnology, nuclear energy, and IT developments.", 1, 11, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000012"), prelimsGs1Id, "PGS_CURR", "Current Events of National & International Importance", "Major national schemes, international organizations, summit declarations, treaties, bilateral relations, and indices.", 1, 12, now);
 
-        // 4. Prelims GS1 Topics
-        UUID t1 = UUID.fromString("c0000000-0000-0000-0000-000000000001");
-        UUID t2 = UUID.fromString("c0000000-0000-0000-0000-000000000002");
-        UUID t3 = UUID.fromString("c0000000-0000-0000-0000-000000000003");
-        UUID t4 = UUID.fromString("c0000000-0000-0000-0000-000000000004");
-        UUID t5 = UUID.fromString("c0000000-0000-0000-0000-000000000005");
-        UUID t6 = UUID.fromString("c0000000-0000-0000-0000-000000000006");
-        UUID t7 = UUID.fromString("c0000000-0000-0000-0000-000000000007");
-        UUID t8 = UUID.fromString("c0000000-0000-0000-0000-000000000008");
-        UUID t9 = UUID.fromString("c0000000-0000-0000-0000-000000000009");
-        UUID t10 = UUID.fromString("c0000000-0000-0000-0000-000000000010");
-        UUID t11 = UUID.fromString("c0000000-0000-0000-0000-000000000011");
-        UUID t12 = UUID.fromString("c0000000-0000-0000-0000-000000000012");
-        UUID t13 = UUID.fromString("c0000000-0000-0000-0000-000000000013");
+        // --- PRELIMS CSAT (Paper II) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000013"), csatId, "CSAT_RC", "Reading Comprehension & Critical Reasoning", "Short and long passages, assumption inference, main idea extraction, and logical consistency.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000014"), csatId, "CSAT_LR", "Logical Reasoning & Analytical Ability", "Deductive syllogisms, blood relations, seating arrangement, direction tests, and series completion.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000015"), csatId, "CSAT_NUM", "Basic Numeracy & Data Interpretation", "Number systems, percentages, profit/loss, ratios, time-speed-distance, permutations, probability, and chart interpretations.", 1, 3, now);
 
-        insertTopic(t1, prelimsGs1Id, null, "PGS1_POLITY", "Indian Polity & Governance", "Constitution, Political System, Panchayati Raj, Public Policy, Rights Issues, etc.", 1, 1, now);
-        insertTopic(t2, prelimsGs1Id, t1, "PGS1_POLITY_CONST", "Constitutional Framework & Organs of State", "Preamble, Fundamental Rights, DPSP, Parliament, Executive, and Judiciary.", 2, 1, now);
-        insertTopic(t3, prelimsGs1Id, t1, "PGS1_POLITY_LOCAL", "Panchayati Raj & Local Governance", "73rd and 74th Constitutional Amendment Acts, Urban Local Bodies, Decentralization.", 2, 2, now);
+        // --- MAINS ESSAY (Theme Architecture) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000016"), essayId, "ESSAY_EDU", "Education", "Quotes, key statistics, NEP 2020, higher education reforms, skill development, digital learning, and holistic human capital.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000017"), essayId, "ESSAY_WOMEN", "Women", "Gender justice, women's workforce participation, safety, leadership, constitutional safeguards, and socio-economic empowerment.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000018"), essayId, "ESSAY_ENV", "Environment", "Climate change ethics, anthropocentrism vs ecocentrism, renewable energy transition, biodiversity, and sustainable development.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000019"), essayId, "ESSAY_HLTH_SCI", "Health & Science", "Public health infrastructure, health expenditure, bioethics, AI & fourth industrial revolution, human-centric innovation, and scientific temper.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000020"), essayId, "ESSAY_POLITY", "Polity", "Constitutional morality, democracy, federalism, citizen-centric governance, justice, electoral reforms, and democratic institutions.", 1, 5, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000021"), essayId, "ESSAY_PHIL", "Philosophical Themes", "Quotes, moral wisdom, character, human resilience, truth, existential reflections, and philosophical essay frameworks.", 1, 6, now);
 
-        insertTopic(t4, prelimsGs1Id, null, "PGS1_HIST", "History of India & Indian National Movement", "Ancient, Medieval, and Modern Indian history with focus on freedom struggle.", 1, 2, now);
-        insertTopic(t5, prelimsGs1Id, t4, "PGS1_HIST_ANC_MED", "Ancient & Medieval India", "Indus Valley, Vedic Age, Mauryan, Gupta, Delhi Sultanate, and Mughal Empire.", 2, 1, now);
-        insertTopic(t6, prelimsGs1Id, t4, "PGS1_HIST_MODERN", "Modern Indian History & National Movement", "British expansion, 1857 Revolt, INC, Gandhian Era, and partition/independence.", 2, 2, now);
+        // --- MAINS GS1 (Art & Culture, Modern History, World History, Indian Society, Geography) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000022"), gs1Id, "MGS1_ART", "1. Art & Culture", "Unit 1: Indian culture — Art forms, literature, and architecture from ancient to modern times.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000023"), gs1Id, "MGS1_MOD_HIST", "2. Modern History of India", "Units 2, 3, 4: Significant events, personalities, issues from the middle of the eighteenth century until the present, and the Freedom Struggle stages & contributors.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000024"), gs1Id, "MGS1_WORLD_HIST", "3. Modern History of World", "Unit 5: Events from 18th century such as industrial revolution, world wars, redrawal of national boundaries, colonization, decolonization, and post-independence consolidation.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000025"), gs1Id, "MGS1_SOCIETY", "4. Indian Society", "Units 6, 7, 8, 9: Salient features of Indian Society, diversity, role of women, population issues, poverty, urbanization, effects of globalization, communalism, regionalism & secularism.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000026"), gs1Id, "MGS1_GEO", "5. Geography", "Units 10, 11, 12: Physical geography, Indian geography, Human and economical geography, natural resources distribution, and geophysical phenomena (earthquakes, tsunami, cyclones).", 1, 5, now);
 
-        insertTopic(t7, prelimsGs1Id, null, "PGS1_GEO", "Indian and World Geography", "Physical, Social, and Economic Geography of India and the World.", 1, 3, now);
-        insertTopic(t8, prelimsGs1Id, t7, "PGS1_GEO_PHYSICAL", "Physical Geography & Geomorphology", "Earth structure, plate tectonics, climatology, oceanography, Indian physiography.", 2, 1, now);
-        insertTopic(t9, prelimsGs1Id, t7, "PGS1_GEO_RESOURCES", "Economic Geography & Resources", "Agriculture, minerals, industries, infrastructure, energy resources.", 2, 2, now);
+        // --- MAINS GS2 (Indian Polity, Social Justice, Governance, International Relations) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000027"), gs2Id, "MGS2_POLITY", "1. Indian Polity", "Units 1 to 10: Constitution, historical underpinnings, evolution, features, amendments, basic structure, federal structure, separation of powers, Parliament, state legislatures, executive, judiciary, RPA, and constitutional posts.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000028"), gs2Id, "MGS2_SOC_JUST", "2. Social Justice", "Units 11 to 14: Welfare schemes for vulnerable sections, mechanisms, laws, institutions, development & management of health, education, human resources, and issues relating to poverty and hunger.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000029"), gs2Id, "MGS2_GOV", "3. Governance", "Units 15 & 16: Important aspects of governance, transparency, accountability, e-governance, citizens charters, and the role of civil services in a democracy.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000030"), gs2Id, "MGS2_IR", "4. International Relations", "Units 17 to 20: India and its neighborhood relations, bilateral/regional/global groupings, effect of developed/developing countries' policies on India's interests, and international institutions.", 1, 4, now);
 
-        insertTopic(t10, prelimsGs1Id, null, "PGS1_ECON", "Economic and Social Development", "Sustainable Development, Poverty, Inclusion, Demographics, Social Sector Initiatives.", 1, 4, now);
-        insertTopic(t11, prelimsGs1Id, t10, "PGS1_ECON_MACRO", "Macroeconomics, Fiscal & Monetary Policy", "National income accounting, inflation, RBI policies, banking, taxation, and budget.", 2, 1, now);
+        // --- MAINS GS3 (Indian Economy, Science & Tech, Ecology & Environment, Disaster Management, Internal Security) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000031"), gs3Id, "MGS3_ECON", "1. Indian Economy", "Units 1 to 10: Planning, resource mobilization, growth, employment, inclusive growth, government budgeting, cropping patterns, farm subsidies, MSP, PDS, food processing, land reforms, infrastructure, and investment models.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000032"), gs3Id, "MGS3_SCI", "2. Science and Technology", "Units 11 to 13: S&T developments and everyday applications, achievements of Indians in S&T, indigenization, and awareness in IT, Space, Computers, Robotics, Nanotech, Biotech, and IPR.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000033"), gs3Id, "MGS3_ENV", "3. Ecology and Environment", "Unit 14: Conservation, environmental pollution and degradation, and Environmental Impact Assessment (EIA).", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000034"), gs3Id, "MGS3_DM", "4. Disaster Management", "Unit 15: Disaster and disaster management, prevention, preparedness, mitigation, and resilience frameworks.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000035"), gs3Id, "MGS3_SEC", "5. Internal Security", "Units 16 to 20: Linkages between development and extremism, challenges from external state and non-state actors, cyber security, money-laundering prevention, border area management, and security forces & their mandate.", 1, 5, now);
 
-        insertTopic(t12, prelimsGs1Id, null, "PGS1_ENV", "Environmental Ecology, Biodiversity & Climate Change", "General issues that do not require subject specialization.", 1, 5, now);
-        insertTopic(t13, prelimsGs1Id, t12, "PGS1_ENV_BIODIV", "Biodiversity & Conservation Efforts", "Protected area networks, IUCN status, wildlife acts, Ramsar wetlands.", 2, 1, now);
+        // --- MAINS GS4 (Ethics, Integrity and Aptitude) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000036"), gs4Id, "MGS4_ETHICS", "Ethics, Integrity and Aptitude", "Ethics and human interface, human values, attitude, foundational values for civil service (integrity, impartiality, objectivity, dedication), emotional intelligence, moral thinkers & philosophers, public service values, probity in governance, RTI, citizen charters, and case studies on ethical dilemmas.", 1, 1, now);
 
-        // 5. CSAT Topics
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000014"), csatId, null, "CSAT_RC", "Reading Comprehension", "Short and long passages testing critical comprehension and inference skills.", 1, 1, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000015"), csatId, null, "CSAT_LR", "Logical Reasoning & Analytical Ability", "Syllogisms, seating arrangement, coding-decoding, blood relations, and puzzles.", 1, 2, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000016"), csatId, null, "CSAT_QA", "Quantitative Aptitude & Basic Numeracy", "Numbers, percentage, profit & loss, ratio, permutations, and data interpretation.", 1, 3, now);
+        // --- SOCIOLOGY OPTIONAL PAPER I (Drishti IAS Official Syllabus - 10 Topics) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000037"), socioP1Id, "SOC1_01", "1. Sociology - The Discipline", "(a) Modernity and social changes in Europe and emergence of Sociology. (b) Scope of the subject and comparison with other social sciences. (c) Sociology and common sense.", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000038"), socioP1Id, "SOC1_02", "2. Sociology as Science", "(a) Science, scientific method, and critique. (b) Major theoretical strands of research methodology. (c) Positivism and its critique. (d) Fact value and objectivity. (e) Non-positivist methodologies.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000039"), socioP1Id, "SOC1_03", "3. Research Methods and Analysis", "(a) Qualitative and quantitative methods. (b) Techniques of data collection. (c) Variables, sampling, hypothesis, reliability, and validity.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000040"), socioP1Id, "SOC1_04", "4. Sociological Thinkers", "(a) Karl Marx - Historical materialism, mode of production, alienation, class struggle. (b) Emile Durkheim - Division of labour, social fact, suicide, religion and society. (c) Max Weber - Social action, ideal types, authority, bureaucracy, protestant ethic and the spirit of capitalism. (d) Talcott Parsons - Social system, pattern variables. (e) Robert K. Merton - Latent and manifest functions, conformity and deviance, reference groups. (f) Mead - Self and identity.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000041"), socioP1Id, "SOC1_05", "5. Stratification and Mobility", "(a) Concepts - equality, inequality, hierarchy, exclusion, poverty, and deprivation. (b) Theories of social stratification - Structural functionalist theory, Marxist theory, Weberian theory. (c) Dimensions - Social stratification of class, status groups, gender, ethnicity and race. (d) Social mobility - open and closed systems, types of mobility, sources and causes of mobility.", 1, 5, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000042"), socioP1Id, "SOC1_06", "6. Works and Economic Life", "(a) Social organization of work in different types of society - slave society, feudal society, industrial capitalist society. (b) Formal and informal organization of work. (c) Labour and society.", 1, 6, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000043"), socioP1Id, "SOC1_07", "7. Politics and Society", "(a) Sociological theories of power. (b) Power elite, bureaucracy, pressure groups and political parties. (c) Nation, state, citizenship, democracy, civil society, ideology. (d) Protest, agitation, social movements, collective action, revolution.", 1, 7, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000044"), socioP1Id, "SOC1_08", "8. Religion and Society", "(a) Sociological theories of religion. (b) Types of religious practices: animism, monism, pluralism, sects, cults. (c) Religion in modern society: religion and science, secularization, religious revivalism, fundamentalism.", 1, 8, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000045"), socioP1Id, "SOC1_09", "9. Systems of Kinship", "(a) Family, household, marriage. (b) Types and forms of family. (c) Lineage and descent. (d) Patriarchy and sexual division of labour. (e) Contemporary trends.", 1, 9, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000046"), socioP1Id, "SOC1_10", "10. Social Change in Modern Society", "(a) Sociological theories of social change. (b) Development and dependency. (c) Agents of social change. (d) Education and social change. (e) Science, technology, and social change.", 1, 10, now);
 
-        // 6. Mains GS1 Topics
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000017"), mainsGs1Id, null, "MGS1_ART", "Indian Art, Architecture & Culture", "Salient aspects of Art Forms, Literature and Architecture from ancient to modern times.", 1, 1, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000018"), mainsGs1Id, null, "MGS1_MOD_HIST", "Modern Indian History & Freedom Struggle", "Significant events, personalities, and stages of the freedom movement.", 1, 2, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000019"), mainsGs1Id, null, "MGS1_WORLD_HIST", "History of the World", "Events from 18th century such as Industrial Revolution, World Wars, Decolonization, and Political Philosophies.", 1, 3, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000020"), mainsGs1Id, null, "MGS1_SOCIETY", "Salient Features of Indian Society & Diversity", "Role of women, population issues, poverty, urbanization, effects of globalization, communalism, regionalism, secularism.", 1, 4, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000021"), mainsGs1Id, null, "MGS1_GEO", "World & Indian Physical Geography", "Distribution of key natural resources, factors responsible for industrial locations, geophysical phenomena.", 1, 5, now);
+        // --- SOCIOLOGY OPTIONAL PAPER II (Drishti IAS Official Syllabus - 15 Topics) ---
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000047"), socioP2Id, "SOC2_01", "1. Perspectives on the Study of Indian Society", "(a) Indology (G.S. Ghurye). (b) Structural functionalism (M.N. Srinivas). (c) Marxist sociology (A.R. Desai).", 1, 1, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000048"), socioP2Id, "SOC2_02", "2. Impact of Colonial Rule on Indian Society", "(a) Social background of Indian nationalism. (b) Modernization of Indian tradition. (c) Protests and movements during the colonial period. (d) Social reforms.", 1, 2, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000049"), socioP2Id, "SOC2_03", "3. Rural and Agrarian Social Structure", "(a) The idea of Indian village and village studies. (b) Agrarian social structure — evolution of land tenure system, land reforms.", 1, 3, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000050"), socioP2Id, "SOC2_04", "4. Caste System in India", "(a) Perspectives on the study of caste systems: G.S. Ghurye, M.N. Srinivas, Louis Dumont, Andre Beteille. (b) Features of caste system. (c) Untouchability — forms and perspectives.", 1, 4, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000051"), socioP2Id, "SOC2_05", "5. Tribal Communities in India", "(a) Definitional problems. (b) Geographical spread. (c) Colonial policies and tribes. (d) Issues of integration and autonomy.", 1, 5, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000052"), socioP2Id, "SOC2_06", "6. Social Classes in India", "(a) Agrarian class structure. (b) Industrial class structure. (c) Middle classes in India.", 1, 6, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000053"), socioP2Id, "SOC2_07", "7. Systems of Kinship in India", "(a) Lineage and descent in India. (b) Types of kinship systems. (c) Family and marriage in India. (d) Household dimensions of the family. (e) Patriarchy, entitlements, and sexual division of labour.", 1, 7, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000054"), socioP2Id, "SOC2_08", "8. Religion and Society in India", "(a) Religious communities in India. (b) Problems of religious minorities.", 1, 8, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000055"), socioP2Id, "SOC2_09", "9. Visions of Social Change in India", "(a) Idea of development planning and mixed economy. (b) Constitution, law, and social change. (c) Education and social change.", 1, 9, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000056"), socioP2Id, "SOC2_10", "10. Rural and Agrarian Transformation in India", "(a) Programmes of rural development, Community Development Programme, cooperatives, poverty alleviation schemes. (b) Green revolution and social change. (c) Changing modes of production in Indian agriculture. (d) Problems of rural labour, bondage, migration.", 1, 10, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000057"), socioP2Id, "SOC2_11", "11. Industrialization and Urbanisation in India", "(a) Evolution of modern industry in India. (b) Growth of urban settlements in India. (c) Working class: structure, growth, class mobilization. (d) Informal sector, child labour. (e) Slums and deprivation in urban areas.", 1, 11, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000058"), socioP2Id, "SOC2_12", "12. Politics and Society in India", "(a) Nation, democracy and citizenship. (b) Political parties, pressure groups, social and political elite. (c) Regionalism and decentralization of power. (d) Secularization.", 1, 12, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000059"), socioP2Id, "SOC2_13", "13. Social Movements in Modern India", "(a) Peasants and farmers' movements. (b) Women’s movement. (c) Backward classes & Dalit movements. (d) Environmental movements. (e) Ethnicity and Identity movements.", 1, 13, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000060"), socioP2Id, "SOC2_14", "14. Population Dynamics in India", "Population size, growth, composition and distribution. Components of population growth: birth, death, migration. Population Policy and family planning. Emerging issues: ageing, sex ratios, child and infant mortality, reproductive health.", 1, 14, now);
+        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000061"), socioP2Id, "SOC2_15", "15. Challenges of Social Transformation in India", "(a) Crisis of development: displacement, environmental problems and sustainability. (b) Poverty, deprivation and inequalities. (c) Violence against women. (d) Caste conflicts. (e) Ethnic conflicts, communalism, religious revivalism. (f) Illiteracy and disparities in education.", 1, 15, now);
 
-        // 7. Mains GS2 Topics
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000022"), mainsGs2Id, null, "MGS2_CONST", "Indian Constitution & Federalism", "Evolution, amendments, significant provisions, basic structure, federal issues, separation of powers.", 1, 1, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000023"), mainsGs2Id, null, "MGS2_GOV", "Governance, Transparency & Accountability", "E-governance, citizen charters, role of civil services, statutory, regulatory and quasi-judicial bodies.", 1, 2, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000024"), mainsGs2Id, null, "MGS2_SOC_JUST", "Social Justice & Welfare Initiatives", "Welfare schemes for vulnerable sections, health, education, human resources, issues relating to poverty and hunger.", 1, 3, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000025"), mainsGs2Id, null, "MGS2_IR", "International Relations & Global Groupings", "India and its neighborhood, bilateral, regional and global groupings, effect of policies of developed/developing nations.", 1, 4, now);
-
-        // 8. Mains GS3 Topics
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000026"), mainsGs3Id, null, "MGS3_ECON", "Indian Economy & Inclusive Growth", "Planning, mobilization of resources, growth, development, employment, and government budgeting.", 1, 1, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000027"), mainsGs3Id, null, "MGS3_AGRI", "Agriculture & Food Processing", "Major crops, cropping patterns, irrigation, direct & indirect farm subsidies, MSP, PDS, economics of animal-rearing.", 1, 2, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000028"), mainsGs3Id, null, "MGS3_SCI_TECH", "Science & Technology Developments", "Indigenization of technology, IT, space, computers, robotics, nanotechnology, biotechnology, and IPR.", 1, 3, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000029"), mainsGs3Id, null, "MGS3_ENV_DM", "Environment Conservation & Disaster Management", "Pollution, degradation, environmental impact assessment, disaster and disaster management mechanisms.", 1, 4, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000030"), mainsGs3Id, null, "MGS3_SEC", "Internal Security & Border Management", "Linkages between development and spread of extremism, cyber security, money laundering, security forces.", 1, 5, now);
-
-        // 9. Mains GS4 Topics
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000031"), mainsGs4Id, null, "MGS4_ETHICS", "Ethics and Human Interface", "Essence, determinants and consequences of Ethics in human actions; dimensions of ethics; ethics in private and public relationships.", 1, 1, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000032"), mainsGs4Id, null, "MGS4_HUMAN_VAL", "Human Values & Thinkers", "Lessons from the lives and teachings of great leaders, reformers and administrators; role of family, society and educational institutions.", 1, 2, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000033"), mainsGs4Id, null, "MGS4_ATTITUDE", "Attitude & Emotional Intelligence", "Content, structure, function; its influence and relation with thought and behaviour; moral and political attitudes; social influence and persuasion.", 1, 3, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000034"), mainsGs4Id, null, "MGS4_PROBITY", "Probity in Governance & Public Service Values", "Concept of public service; philosophical basis of governance and probity; information sharing, transparency, RTI, codes of ethics.", 1, 4, now);
-        insertTopic(UUID.fromString("c0000000-0000-0000-0000-000000000035"), mainsGs4Id, null, "MGS4_CASES", "Case Studies on Ethical Dilemmas", "Practical scenario case studies on issues involving corruption, administrative ethics, and public welfare.", 1, 5, now);
-
-        // 10. Optional Subjects Catalogue
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000001"), "OPT_PUB_AD", "Public Administration", "Administrative theory, Indian administration, public policy, financial administration, and rural-urban development.", 1, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000002"), "OPT_PSIR", "Political Science & International Relations", "Political theory, Indian nationalism, comparative politics, and India’s foreign policy.", 2, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000003"), "OPT_SOCIO", "Sociology", "Sociological thinkers, social stratification, politics and society, religion, family, and social change in India.", 3, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000004"), "OPT_GEO", "Geography", "Geomorphology, climatology, oceanography, population geography, regional planning, and geography of India.", 4, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000005"), "OPT_HIST", "History", "Sources, early Indian society, medieval political formations, colonial rule, and world history.", 5, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000006"), "OPT_ANTHRO", "Anthropology", "Physical anthropology, sociocultural anthropology, Indian anthropology, and tribal communities.", 6, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000007"), "OPT_ECON", "Economics", "Advanced micro & macroeconomics, public finance, international economics, growth & development, and Indian economy.", 7, now);
-        insertOptional(UUID.fromString("d0000000-0000-0000-0000-000000000008"), "OPT_PHIL", "Philosophy", "Western philosophy, Indian philosophy, socio-political philosophy, and philosophy of religion.", 8, now);
-
-        log.info("UPSC Syllabus & Subject Architecture seeded successfully via JDBC (2 exams, 7 subjects, 35 topics, 8 optionals).");
+        log.info("UPSC Syllabus updated with exact topics: Prelims (15 topics), Mains (21 topics across Essay & GS1-4), Sociology Optional (25 topics)!");
     }
 
-    private void insertTopic(UUID id, UUID subjectId, UUID parentTopicId, String code, String name, String description, int level, int displayOrder, Timestamp timestamp) {
+    private void insertSubject(UUID id, UUID examId, String code, String name, String description, String paper, int order, Timestamp now) {
         jdbcTemplate.update(
-                "INSERT INTO syllabus_topics (id, subject_id, parent_topic_id, code, name, description, level, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, subjectId, parentTopicId, code, name, description, level, displayOrder, timestamp, timestamp
+                "INSERT INTO subjects (id, exam_id, code, name, description, paper, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, examId, code, name, description, paper, order, now, now
         );
     }
 
-    private void insertOptional(UUID id, String code, String name, String description, int displayOrder, Timestamp timestamp) {
+    private void insertTopic(UUID id, UUID subjectId, String code, String name, String description, int level, int order, Timestamp now) {
         jdbcTemplate.update(
-                "INSERT INTO optional_subjects (id, code, name, description, display_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                id, code, name, description, displayOrder, timestamp, timestamp
+                "INSERT INTO syllabus_topics (id, subject_id, parent_topic_id, code, name, description, level, display_order, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)",
+                id, subjectId, code, name, description, level, order, now, now
         );
     }
 }

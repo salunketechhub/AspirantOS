@@ -41,6 +41,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler({
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
+            IllegalArgumentException.class
+    })
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+            Exception ex, HttpServletRequest request) {
+        log.warn("Malformed JSON request or invalid argument: {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                "Invalid request body or argument: " + ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateEmailException(
             DuplicateEmailException ex, HttpServletRequest request) {
@@ -93,7 +109,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
-    @ExceptionHandler({ResourceNotFoundException.class, UsernameNotFoundException.class})
+    @ExceptionHandler({
+            ResourceNotFoundException.class,
+            UsernameNotFoundException.class,
+            org.springframework.web.servlet.resource.NoResourceFoundException.class
+    })
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
             Exception ex, HttpServletRequest request) {
         log.warn("Resource not found: {}", ex.getMessage());
