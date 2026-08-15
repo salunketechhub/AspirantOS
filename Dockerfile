@@ -8,6 +8,9 @@ WORKDIR /app
 COPY backend/mvnw backend/pom.xml ./
 COPY backend/.mvn ./.mvn
 
+# Ensure execution permissions on the wrapper script
+RUN chmod +x ./mvnw
+
 # Download dependencies
 RUN ./mvnw dependency:go-offline -B || true
 

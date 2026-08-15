@@ -8,6 +8,9 @@ WORKDIR /app
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
 
+# Ensure execution permissions on the wrapper script
+RUN chmod +x ./mvnw
+
 # Download dependencies offline for faster cache reuse
 RUN ./mvnw dependency:go-offline -B || true
 
