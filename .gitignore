@@ -1,0 +1,50 @@
+# Dependencies & Package Managers
+node_modules/
+.pnp
+.pnp.js
+
+# Angular Build & Cache
+frontend/.angular/
+frontend/dist/
+frontend/.cache/
+frontend/coverage/
+
+# Spring Boot Build & Cache
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# IDE & Editor Configurations
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+.springBeans
+
+# Environment & Secrets (Never commit secrets)
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.url
