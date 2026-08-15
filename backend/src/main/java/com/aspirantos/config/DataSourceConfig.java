@@ -70,7 +70,9 @@ public class DataSourceConfig {
                             finalPassword = userInfo[1];
                         }
                     }
-                    finalUrl = String.format("jdbc:postgresql://%s:%d/%s?sslmode=require", host, port, path);
+                    boolean isInternal = host != null && (host.endsWith(".railway.internal") || host.equals("postgres") || host.equals("database") || host.equals("localhost") || host.equals("127.0.0.1"));
+                    String sslParam = isInternal ? "sslmode=prefer" : "sslmode=require";
+                    finalUrl = String.format("jdbc:postgresql://%s:%d/%s?%s", host, port, path, sslParam);
                 } catch (Exception e) {
                     log.warn("Failed to parse DATABASE_URL as URI, using as-is: {}", e.getMessage());
                     finalUrl = envDatabaseUrl;
