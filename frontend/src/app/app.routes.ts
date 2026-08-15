@@ -3,6 +3,7 @@ import { HomeComponent } from './pages/home/home.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import { SyllabusComponent } from './pages/syllabus/syllabus.component';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -26,6 +27,12 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [authGuard],
     title: 'Dashboard — AspirantOS',
+  },
+  {
+    path: 'syllabus',
+    component: SyllabusComponent,
+    canActivate: [authGuard],
+    title: 'Syllabus Explorer — AspirantOS',
   },
   {
     path: '**',

@@ -1,0 +1,386 @@
+<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans selection:bg-emerald-500/20 selection:text-emerald-300">
+
+  <!-- Header Navigation -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a routerLink="/" class="flex items-center space-x-3 cursor-pointer group">
+          <div class="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-display font-bold text-lg group-hover:border-emerald-500/60 transition-colors">
+            A
+          </div>
+          <div>
+            <span class="font-display font-bold text-xl tracking-tight text-white">Aspirant<span class="text-emerald-400">OS</span></span>
+            <span class="hidden sm:inline-block ml-3 px-2 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-950/60 rounded border border-emerald-800/50">
+              Syllabus Explorer
+            </span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Right Navigation Actions -->
+      <div class="flex items-center space-x-4">
+        <a
+          routerLink="/dashboard"
+          class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-slate-300 bg-slate-850 hover:bg-slate-800 border border-slate-700/80 transition-colors"
+        >
+          <svg class="w-3.5 h-3.5 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="hidden md:flex items-center space-x-2 text-xs">
+          <span class="text-slate-400">{{ authService.userName() }}</span>
+        </div>
+
+        <button
+          (click)="onLogout()"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 active:scale-95 transition-all cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Top Stage Tabs & Search Header -->
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
+      
+      <!-- Stage Tabs (Prelims / Mains / Optionals) -->
+      <div class="inline-flex p-1 bg-slate-900/90 border border-slate-800 rounded-xl">
+        <button
+          (click)="selectTab('PRELIMS')"
+          [class.bg-emerald-500]="activeTab() === 'PRELIMS'"
+          [class.text-slate-950]="activeTab() === 'PRELIMS'"
+          [class.font-bold]="activeTab() === 'PRELIMS'"
+          [class.text-slate-400]="activeTab() !== 'PRELIMS'"
+          [class.hover:text-slate-200]="activeTab() !== 'PRELIMS'"
+          class="px-5 py-2 rounded-lg text-xs transition-all cursor-pointer font-display uppercase tracking-wider"
+        >
+          Prelims (GS & CSAT)
+        </button>
+
+        <button
+          (click)="selectTab('MAINS')"
+          [class.bg-emerald-500]="activeTab() === 'MAINS'"
+          [class.text-slate-950]="activeTab() === 'MAINS'"
+          [class.font-bold]="activeTab() === 'MAINS'"
+          [class.text-slate-400]="activeTab() !== 'MAINS'"
+          [class.hover:text-slate-200]="activeTab() !== 'MAINS'"
+          class="px-5 py-2 rounded-lg text-xs transition-all cursor-pointer font-display uppercase tracking-wider"
+        >
+          Mains (Essay & GS1-4)
+        </button>
+
+        <button
+          (click)="selectTab('OPTIONALS')"
+          [class.bg-emerald-500]="activeTab() === 'OPTIONALS'"
+          [class.text-slate-950]="activeTab() === 'OPTIONALS'"
+          [class.font-bold]="activeTab() === 'OPTIONALS'"
+          [class.text-slate-400]="activeTab() !== 'OPTIONALS'"
+          [class.hover:text-slate-200]="activeTab() !== 'OPTIONALS'"
+          class="px-5 py-2 rounded-lg text-xs transition-all cursor-pointer font-display uppercase tracking-wider"
+        >
+          Optional Catalogue
+        </button>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="w-full lg:w-80 relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          placeholder="Search topics, keywords, codes..."
+          class="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+        />
+        <button
+          *ngIf="searchQuery()"
+          (click)="searchQuery.set('')"
+          class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Error State Banner -->
+    <div *ngIf="errorMessage()" class="mb-6 p-4 rounded-xl bg-rose-950/60 border border-rose-700/50 text-rose-200 text-xs flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+      <button (click)="loadInitialData()" class="px-3 py-1 bg-rose-900/60 hover:bg-rose-800/80 rounded text-rose-200 font-semibold cursor-pointer">
+        Retry
+      </button>
+    </div>
+
+    <!-- Loading State Skeleton -->
+    <div *ngIf="isLoading()" class="space-y-4">
+      <div class="h-10 bg-slate-900/60 border border-slate-800 rounded-xl animate-pulse"></div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="h-64 bg-slate-900/60 border border-slate-800 rounded-xl animate-pulse"></div>
+        <div class="md:col-span-3 h-96 bg-slate-900/60 border border-slate-800 rounded-xl animate-pulse"></div>
+      </div>
+    </div>
+
+    <!-- MAIN VIEW: Prelims & Mains View -->
+    <div *ngIf="!isLoading() && activeTab() !== 'OPTIONALS'" class="space-y-6">
+
+      <!-- Breadcrumb Navigation -->
+      <nav class="flex items-center space-x-2 text-xs text-slate-400 bg-slate-900/50 border border-slate-800/80 px-4 py-2.5 rounded-lg">
+        <span>UPSC Civil Services</span>
+        <span class="text-slate-600">/</span>
+        <span class="text-emerald-400 font-medium">{{ selectedExam()?.name }}</span>
+        <span *ngIf="selectedSubject()" class="text-slate-600">/</span>
+        <span *ngIf="selectedSubject()" class="text-white font-medium">{{ selectedSubject()?.name }}</span>
+      </nav>
+
+      <!-- Subject Selector Pills -->
+      <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          *ngFor="let subject of subjects()"
+          (click)="selectSubject(subject)"
+          [class.bg-emerald-500/10]="selectedSubject()?.id === subject.id"
+          [class.border-emerald-500/50]="selectedSubject()?.id === subject.id"
+          [class.text-emerald-300]="selectedSubject()?.id === subject.id"
+          [class.bg-slate-900/80]="selectedSubject()?.id !== subject.id"
+          [class.border-slate-800]="selectedSubject()?.id !== subject.id"
+          [class.text-slate-400]="selectedSubject()?.id !== subject.id"
+          [class.hover:text-slate-200]="selectedSubject()?.id !== subject.id"
+          class="px-4 py-2.5 rounded-lg border text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-2 cursor-pointer"
+        >
+          <span class="px-1.5 py-0.5 rounded bg-slate-950/80 text-[10px] font-mono border border-slate-800">
+            {{ subject.paper }}
+          </span>
+          <span>{{ subject.name }}</span>
+        </button>
+      </div>
+
+      <!-- Subject Detail & Topic Tree Container -->
+      <div *ngIf="selectedSubject()" class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 shadow-xl">
+
+        <!-- Subject Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+          <div>
+            <div class="flex items-center space-x-2.5 mb-1.5">
+              <span class="px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 rounded text-xs font-mono font-medium">
+                {{ selectedSubject()?.code }}
+              </span>
+              <span class="text-xs text-slate-400">• {{ selectedSubject()?.paper }}</span>
+              <span class="text-xs text-slate-400">• {{ currentSubjectTopicCount() }} Topics Total</span>
+            </div>
+            <h2 class="font-display text-xl sm:text-2xl font-bold text-white tracking-tight">
+              {{ selectedSubject()?.name }}
+            </h2>
+            <p *ngIf="selectedSubject()?.description" class="text-xs text-slate-400 mt-1.5 max-w-3xl leading-relaxed">
+              {{ selectedSubject()?.description }}
+            </p>
+          </div>
+
+          <!-- Tree Actions -->
+          <div class="flex items-center space-x-2 shrink-0">
+            <button
+              (click)="expandAll()"
+              class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+            >
+              Expand All
+            </button>
+            <button
+              (click)="collapseAll()"
+              class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+            >
+              Collapse All
+            </button>
+          </div>
+        </div>
+
+        <!-- Topics Loading -->
+        <div *ngIf="isTopicsLoading()" class="py-12 text-center text-xs text-slate-400 space-y-2">
+          <svg class="animate-spin h-6 w-6 text-emerald-400 mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <div>Loading topic hierarchy...</div>
+        </div>
+
+        <!-- Empty State (No Search Match) -->
+        <div *ngIf="!isTopicsLoading() && filteredTopics().length === 0" class="py-12 text-center">
+          <svg class="w-10 h-10 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="text-sm font-semibold text-slate-300">No topics match your search query</div>
+          <div class="text-xs text-slate-500 mt-1">Try searching with a different term or clear the filter.</div>
+          <button (click)="searchQuery.set('')" class="mt-4 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded text-xs hover:bg-emerald-500/20 cursor-pointer">
+            Clear Filter
+          </button>
+        </div>
+
+        <!-- Hierarchical Topics Accordion List -->
+        <div *ngIf="!isTopicsLoading() && filteredTopics().length > 0" class="pt-6 space-y-4">
+
+          <div
+            *ngFor="let topic of filteredTopics()"
+            class="border border-slate-800 bg-slate-950/60 rounded-xl overflow-hidden transition-all duration-200"
+          >
+            <!-- Level 1 Topic Header -->
+            <div
+              (click)="toggleTopic(topic.id)"
+              class="px-5 py-4 flex items-start justify-between cursor-pointer hover:bg-slate-900/60 transition-colors select-none"
+            >
+              <div class="flex items-start space-x-3.5 pr-4">
+                <!-- Expand Chevron Icon -->
+                <button
+                  type="button"
+                  class="mt-0.5 text-slate-400 hover:text-emerald-400 transition-transform duration-200"
+                  [class.rotate-90]="isExpanded(topic.id)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+
+                <div>
+                  <div class="flex items-center space-x-2 mb-1">
+                    <span class="px-2 py-0.5 bg-slate-800 text-slate-300 font-mono text-[10px] rounded border border-slate-700">
+                      {{ topic.code }}
+                    </span>
+                    <span class="px-1.5 py-0.5 bg-emerald-950/60 text-emerald-400 text-[10px] rounded font-medium border border-emerald-800/40">
+                      Level {{ topic.level }}
+                    </span>
+                    <span *ngIf="topic.subtopics && topic.subtopics.length > 0" class="text-[10px] text-slate-500 font-mono">
+                      ({{ topic.subtopics.length }} subtopics)
+                    </span>
+                  </div>
+
+                  <h3 class="font-display font-semibold text-sm sm:text-base text-white">
+                    {{ topic.name }}
+                  </h3>
+
+                  <p *ngIf="topic.description" class="text-xs text-slate-400 mt-1 leading-relaxed">
+                    {{ topic.description }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Quick indicator -->
+              <span class="text-xs text-slate-500 shrink-0 font-mono hidden sm:inline-block">
+                #{{ topic.displayOrder }}
+              </span>
+            </div>
+
+            <!-- Level 2 Nested Subtopics (Expanded View) -->
+            <div
+              *ngIf="isExpanded(topic.id) && topic.subtopics && topic.subtopics.length > 0"
+              class="border-t border-slate-800/80 bg-slate-900/30 px-6 py-4 pl-12 space-y-3"
+            >
+              <div
+                *ngFor="let subtopic of topic.subtopics"
+                class="border-l-2 border-emerald-500/40 pl-4 py-2 hover:border-emerald-400 transition-colors"
+              >
+                <div class="flex items-center space-x-2 mb-1">
+                  <span class="px-1.5 py-0.5 bg-slate-800/80 text-slate-300 font-mono text-[10px] rounded border border-slate-700">
+                    {{ subtopic.code }}
+                  </span>
+                  <span class="px-1.5 py-0.5 bg-slate-800 text-slate-400 text-[10px] rounded font-medium">
+                    Subtopic (L{{ subtopic.level }})
+                  </span>
+                </div>
+
+                <div class="text-xs sm:text-sm font-medium text-slate-200">
+                  {{ subtopic.name }}
+                </div>
+
+                <p *ngIf="subtopic.description" class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  {{ subtopic.description }}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- OPTIONALS CATALOGUE VIEW -->
+    <div *ngIf="!isLoading() && activeTab() === 'OPTIONALS'" class="space-y-6">
+
+      <div class="text-center max-w-2xl mx-auto mb-8">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 text-xs font-medium uppercase tracking-wider mb-3">
+          Optional Subjects
+        </div>
+        <h2 class="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          UPSC Optional Subjects Catalogue
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1.5">
+          Candidates must choose one optional subject (consisting of Paper I and Paper II) for the UPSC Civil Services Main Examination.
+        </p>
+      </div>
+
+      <!-- Optionals Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div
+          *ngFor="let opt of filteredOptionals()"
+          class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow-lg hover:border-emerald-500/50 transition-all flex flex-col justify-between group"
+        >
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="px-2 py-0.5 bg-slate-800 text-emerald-400 font-mono text-xs rounded border border-slate-700">
+                {{ opt.code }}
+              </span>
+              <span class="text-xs text-slate-500 font-mono">Paper I & II</span>
+            </div>
+
+            <h3 class="font-display font-semibold text-base text-white group-hover:text-emerald-300 transition-colors">
+              {{ opt.name }}
+            </h3>
+
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+              {{ opt.description }}
+            </p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+            <span>Catalogue Entry #{{ opt.displayOrder }}</span>
+            <span class="text-emerald-400 font-medium">500 Marks Total</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/40 px-6 py-6 mt-12">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+      <div>
+        <span class="font-semibold text-slate-400">AspirantOS</span> — Step 3: UPSC Syllabus & Subject Architecture
+      </div>
+      <div class="flex items-center space-x-4">
+        <a routerLink="/dashboard" class="hover:text-slate-300">Dashboard</a>
+        <span>•</span>
+        <a routerLink="/" class="hover:text-slate-300">System Telemetry</a>
+      </div>
+    </div>
+  </footer>
+
+</div>

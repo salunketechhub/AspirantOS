@@ -17,6 +17,17 @@
 
       <!-- Right Nav Profile & Logout -->
       <div class="flex items-center space-x-4">
+        <a
+          routerLink="/syllabus"
+          id="nav-syllabus-btn"
+          class="inline-flex items-center px-3.5 py-1.5 rounded-md text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-colors shadow-sm shadow-emerald-950/30 cursor-pointer font-display"
+        >
+          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          <span>Syllabus Explorer</span>
+        </a>
+
         <div class="hidden sm:flex items-center space-x-2 text-xs">
           <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
           <span class="text-slate-300 font-medium">{{ authService.userName() }}</span>
@@ -28,7 +39,7 @@
           (click)="onLogout()"
           class="inline-flex items-center px-3.5 py-1.5 rounded-md text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 active:scale-95 transition-all cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
           <span>Sign Out</span>
@@ -41,19 +52,32 @@
   <main class="flex-1 max-w-5xl w-full mx-auto px-6 py-10 flex flex-col justify-center">
 
     <!-- Welcome Hero -->
-    <div class="text-center max-w-2xl mx-auto mb-10">
+    <div class="text-center max-w-2xl mx-auto mb-8">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 text-xs font-medium uppercase tracking-wider mb-4">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-        Step 2 — Authentication Verified
+        Step 3 — UPSC Syllabus Architecture Active
       </div>
 
       <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-        Welcome to AspirantOS, <span class="text-emerald-400">{{ authService.currentUser()?.firstName }}</span>
+        Welcome, <span class="text-emerald-400">{{ authService.currentUser()?.firstName }}</span>
       </h1>
 
       <p class="mt-2 text-sm sm:text-base text-slate-300">
-        You are securely authenticated with a stateless JWT session.
+        You are authenticated with stateless JWT security. Explore the complete UPSC syllabus hierarchy below.
       </p>
+
+      <!-- Syllabus CTA -->
+      <div class="mt-6">
+        <a
+          routerLink="/syllabus"
+          class="inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-950/50 cursor-pointer font-display"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+          </svg>
+          <span>Open UPSC Syllabus Explorer →</span>
+        </a>
+      </div>
     </div>
 
     <!-- Verification Grid -->
@@ -92,7 +116,7 @@
               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
               </svg>
-              BCrypt Hash (Never Exposed)
+              BCrypt Hash (Strength 12)
             </dd>
           </div>
         </dl>
@@ -143,11 +167,14 @@
     <!-- Quick Navigation Bar -->
     <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="text-xs text-slate-400 text-center sm:text-left">
-        <span class="font-semibold text-slate-200">Step 2 Milestone Complete:</span> User management & authentication verified.
+        <span class="font-semibold text-slate-200">Step 3 Milestone Complete:</span> Database-driven UPSC Syllabus Architecture & Explorer.
       </div>
       <div class="flex items-center space-x-3">
+        <a routerLink="/syllabus" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-colors font-display">
+          Browse Syllabus
+        </a>
         <a routerLink="/" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700">
-          System Health Telemetry
+          System Telemetry
         </a>
       </div>
     </div>
@@ -156,7 +183,7 @@
 
   <!-- Footer -->
   <footer class="border-t border-slate-800/80 bg-slate-900/40 px-6 py-4 text-center text-xs text-slate-500">
-    AspirantOS — Step 2: Authentication & User Management
+    AspirantOS — Step 3: UPSC Syllabus & Subject Architecture
   </footer>
 
 </div>
