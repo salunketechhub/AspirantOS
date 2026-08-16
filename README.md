@@ -10,7 +10,7 @@
 [![Spring Boot 3.4](https://img.shields.io/badge/Spring%20Boot-3.4.3-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Angular 20](https://img.shields.io/badge/Angular-20-DD0031?style=flat-square&logo=angular&logoColor=white)](https://angular.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg?style=flat-square)](LICENSE)
 
 **"Plan. Study. Revise. Track."**  
 *A modern, distraction-free command center for UPSC Civil Services aspirants to structure their preparation, track syllabus completion, and monitor past-year question mastery.*
@@ -211,7 +211,9 @@ npm run build
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+Copyright &copy; 2026 **Salunke Tech Hub**. All Rights Reserved.
+
+This software and associated documentation files are proprietary and confidential. Unauthorized copying, modification, distribution, or public display of this codebase without express written permission is strictly prohibited.
 
 ---
 
