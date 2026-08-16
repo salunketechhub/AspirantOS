@@ -41,7 +41,7 @@ public class UserTopicProgress {
     @Column(name = "status", nullable = false, length = 30)
     private ProgressStatus status = ProgressStatus.NOT_STARTED;
 
-    @Column(name = "pyq_done", nullable = false)
+    @Column(name = "pyq_done")
     private Boolean pyqDone = false;
 
     @CreationTimestamp

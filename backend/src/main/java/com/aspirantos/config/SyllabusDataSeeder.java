@@ -25,7 +25,7 @@ public class SyllabusDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        // Ensure user_topic_progress table exists
+        // Ensure user_topic_progress table exists with pyq_done column
         try {
             jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS user_topic_progress (
@@ -33,17 +33,17 @@ public class SyllabusDataSeeder implements CommandLineRunner {
                     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                     topic_id UUID NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
                     status VARCHAR(30) NOT NULL,
+                    pyq_done BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     CONSTRAINT uq_user_topic UNIQUE (user_id, topic_id)
                 )
             """);
+            jdbcTemplate.execute("ALTER TABLE user_topic_progress ADD COLUMN IF NOT EXISTS pyq_done BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("UPDATE user_topic_progress SET pyq_done = FALSE WHERE pyq_done IS NULL");
         } catch (Exception e) {
             log.debug("Table user_topic_progress check: {}", e.getMessage());
         }
-
-        log.info("Updating UPSC Syllabus with exact topic architecture from notes and Drishti IAS Sociology Optional...");
-        Timestamp now = Timestamp.from(Instant.now());
 
         // Refresh syllabus topics hierarchy and update constraints if needed
         try {
@@ -54,10 +54,18 @@ public class SyllabusDataSeeder implements CommandLineRunner {
             log.debug("Exams stage constraint update: {}", e.getMessage());
         }
 
-        jdbcTemplate.execute("DELETE FROM user_topic_progress");
-        jdbcTemplate.execute("DELETE FROM syllabus_topics");
-        jdbcTemplate.execute("DELETE FROM subjects");
-        jdbcTemplate.execute("DELETE FROM exams");
+        Integer existingTopics = 0;
+        try {
+            existingTopics = jdbcTemplate.queryForObject("SELECT count(*) FROM syllabus_topics", Integer.class);
+        } catch (Exception ignored) {}
+
+        if (existingTopics != null && existingTopics > 0) {
+            log.info("Syllabus already seeded with {} topics. Skipping re-seed.", existingTopics);
+            return;
+        }
+
+        log.info("Updating UPSC Syllabus with exact topic architecture from notes and Drishti IAS Sociology Optional...");
+        Timestamp now = Timestamp.from(Instant.now());
 
         // 1. Exams (Prelims, Mains, Optional)
         UUID prelimsId = UUID.fromString("a0000000-0000-0000-0000-000000000001");
