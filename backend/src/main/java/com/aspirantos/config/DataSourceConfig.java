@@ -47,29 +47,38 @@ public class DataSourceConfig {
         config.setMaxLifetime(1800000);
         config.setInitializationFailTimeout(-1);
 
-        // Check environment variables in order of cloud standard preference
-        String envUrl = System.getenv("DATABASE_URL");
-        if (envUrl == null || envUrl.isBlank()) {
-            envUrl = System.getenv("DATABASE_PUBLIC_URL");
+        // Check if any variable contains a full connection string
+        String fullUrl = System.getenv("DATABASE_URL");
+        if (fullUrl == null || fullUrl.isBlank()) {
+            fullUrl = System.getenv("DATABASE_PUBLIC_URL");
         }
-        if (envUrl == null || envUrl.isBlank()) {
-            envUrl = System.getenv("SPRING_DATASOURCE_URL");
+        if (fullUrl == null || fullUrl.isBlank()) {
+            fullUrl = System.getenv("SPRING_DATASOURCE_URL");
+        }
+        if ((fullUrl == null || fullUrl.isBlank()) && dbHost != null && (dbHost.contains("://") || dbHost.startsWith("jdbc:"))) {
+            fullUrl = dbHost;
+        }
+        if ((fullUrl == null || fullUrl.isBlank()) && System.getenv("DB_HOST") != null && (System.getenv("DB_HOST").contains("://") || System.getenv("DB_HOST").startsWith("jdbc:"))) {
+            fullUrl = System.getenv("DB_HOST");
         }
 
         String finalUrl = null;
         String finalUser = System.getenv("PGUSER") != null ? System.getenv("PGUSER") : (dbUsername != null ? dbUsername : "postgres");
         String finalPassword = System.getenv("PGPASSWORD") != null ? System.getenv("PGPASSWORD") : (dbPassword != null ? dbPassword : "2516");
 
-        if (envUrl != null && !envUrl.isBlank()) {
-            log.info("Detected cloud DATABASE_URL environment variable");
-            if (envUrl.startsWith("postgres://") || envUrl.startsWith("postgresql://")) {
+        if (fullUrl != null && !fullUrl.isBlank()) {
+            log.info("Detected full database connection string");
+            if (fullUrl.startsWith("postgres://") || fullUrl.startsWith("postgresql://")) {
                 try {
-                    URI uri = URI.create(envUrl);
+                    URI uri = URI.create(fullUrl);
                     String host = uri.getHost();
                     int port = uri.getPort() > 0 ? uri.getPort() : 5432;
                     String path = uri.getPath();
-                    if (path.startsWith("/")) {
+                    if (path != null && path.startsWith("/")) {
                         path = path.substring(1);
+                    }
+                    if (path == null || path.isBlank()) {
+                        path = "railway";
                     }
                     if (uri.getUserInfo() != null) {
                         String[] userInfo = uri.getUserInfo().split(":", 2);
@@ -82,11 +91,11 @@ public class DataSourceConfig {
                     String sslParam = isInternal ? "sslmode=prefer" : "sslmode=require";
                     finalUrl = String.format("jdbc:postgresql://%s:%d/%s?%s", host, port, path, sslParam);
                 } catch (Exception e) {
-                    log.warn("Failed to parse DATABASE_URL as URI: {}", e.getMessage());
-                    finalUrl = envUrl;
+                    log.warn("Failed to parse URL as URI: {}", e.getMessage());
+                    finalUrl = fullUrl.startsWith("jdbc:") ? fullUrl : "jdbc:" + fullUrl;
                 }
-            } else if (envUrl.startsWith("jdbc:postgresql://")) {
-                finalUrl = envUrl;
+            } else if (fullUrl.startsWith("jdbc:postgresql://")) {
+                finalUrl = fullUrl;
             }
         }
 
@@ -94,7 +103,7 @@ public class DataSourceConfig {
             String host = System.getenv("PGHOST") != null ? System.getenv("PGHOST") : (dbHost != null ? dbHost : "localhost");
             String port = System.getenv("PGPORT") != null ? System.getenv("PGPORT") : (dbPort != null ? dbPort : "5432");
             String db = System.getenv("PGDATABASE") != null ? System.getenv("PGDATABASE") : (dbName != null ? dbName : "aspirantos");
-            boolean isLocal = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "database".equalsIgnoreCase(host);
+            boolean isLocal = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "database".equalsIgnoreCase(host) || host.endsWith(".railway.internal");
             String sslParam = isLocal ? "sslmode=prefer" : "sslmode=require";
             finalUrl = String.format("jdbc:postgresql://%s:%s/%s?%s", host, port, db, sslParam);
         }
