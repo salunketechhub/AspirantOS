@@ -230,10 +230,39 @@
       </div>
     </div>
 
+    <!-- PYQ Tracker Summary Card -->
+    <div class="bg-gradient-to-r from-sky-950/40 via-slate-900 to-slate-900 border border-sky-800/40 rounded-xl p-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="space-y-1 text-center sm:text-left">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-950/80 border border-sky-700/50 text-sky-300 text-[10px] font-semibold uppercase tracking-wider">
+          <span>📋</span> PYQ Tracker Status
+        </div>
+        <h3 class="font-display font-bold text-base text-white">
+          Previous Year Questions Mastery: <span class="text-sky-400 font-mono">{{ overallProgress()?.pyqPercentage || 0 }}%</span>
+        </h3>
+        <p class="text-xs text-slate-400">
+          <strong class="text-white font-mono">{{ overallProgress()?.totalPyqDone || 0 }}</strong> out of <span class="font-mono">{{ overallProgress()?.totalTopics || 0 }}</span> syllabus topics marked with solved PYQs.
+        </p>
+      </div>
+
+      <div class="w-full sm:w-64 space-y-2">
+        <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+          <div
+            class="h-full bg-sky-400 rounded-full transition-all duration-500"
+            [style.width.%]="overallProgress()?.pyqPercentage || 0"
+          ></div>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+          <span>0%</span>
+          <span class="text-sky-300 font-semibold">{{ overallProgress()?.pyqPercentage || 0 }}% Solved</span>
+          <span>100%</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Navigation Bar -->
     <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="text-xs text-slate-400 text-center sm:text-left">
-        <span class="font-semibold text-slate-200">Track Your Progress:</span> Mark syllabus topics as <span class="text-slate-400">○ Not Started</span>, <span class="text-amber-400">◐ In Progress</span>, or <span class="text-emerald-400">✓ Completed</span>.
+        <span class="font-semibold text-slate-200">Track Your Progress:</span> Mark syllabus topics as <span class="text-slate-400">○ Not Started</span>, <span class="text-amber-400">◐ In Progress</span>, or <span class="text-emerald-400">✓ Completed</span>, and track solved <span class="text-sky-400">📋 PYQs</span>.
       </div>
       <div class="flex items-center space-x-3">
         <a routerLink="/syllabus" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-colors font-display">

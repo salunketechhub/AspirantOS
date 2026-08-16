@@ -1,7 +1,8 @@
 export type ProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
 export interface ProgressStatusRequest {
-  status: ProgressStatus;
+  status?: ProgressStatus;
+  pyqDone?: boolean;
 }
 
 export interface TopicProgressResponse {
@@ -9,6 +10,7 @@ export interface TopicProgressResponse {
   topicCode: string;
   topicName: string;
   status: ProgressStatus;
+  pyqDone: boolean;
   subjectId: string;
   subjectCode: string;
   subjectName: string;
@@ -34,4 +36,6 @@ export interface OverallProgressResponse {
   prelimsPercentage: number;
   mainsPercentage: number;
   optionalPercentage: number;
+  totalPyqDone?: number;
+  pyqPercentage?: number;
 }

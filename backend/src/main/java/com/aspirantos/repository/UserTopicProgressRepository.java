@@ -21,9 +21,13 @@ public interface UserTopicProgressRepository extends JpaRepository<UserTopicProg
 
     long countByUserIdAndStatus(UUID userId, ProgressStatus status);
 
+    long countByUserIdAndPyqDoneTrue(UUID userId);
+
     long countByUserIdAndTopic_SubjectIdAndStatus(UUID userId, UUID subjectId, ProgressStatus status);
 
     long countByUserIdAndTopic_Subject_Exam_StageAndStatus(UUID userId, ExamStage stage, ProgressStatus status);
+
+    long countByUserIdAndTopic_Subject_Exam_StageAndPyqDoneTrue(UUID userId, ExamStage stage);
 
     void deleteByUserIdAndTopicId(UUID userId, UUID topicId);
 }

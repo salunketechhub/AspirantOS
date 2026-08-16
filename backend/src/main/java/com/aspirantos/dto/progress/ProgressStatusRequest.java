@@ -1,12 +1,11 @@
 package com.aspirantos.dto.progress;
 
 import com.aspirantos.entity.ProgressStatus;
-import jakarta.validation.constraints.NotNull;
 
 public class ProgressStatusRequest {
 
-    @NotNull(message = "Progress status is required (NOT_STARTED, IN_PROGRESS, COMPLETED)")
     private ProgressStatus status;
+    private Boolean pyqDone;
 
     public ProgressStatusRequest() {
     }
@@ -15,11 +14,24 @@ public class ProgressStatusRequest {
         this.status = status;
     }
 
+    public ProgressStatusRequest(ProgressStatus status, Boolean pyqDone) {
+        this.status = status;
+        this.pyqDone = pyqDone;
+    }
+
     public ProgressStatus getStatus() {
         return status;
     }
 
     public void setStatus(ProgressStatus status) {
         this.status = status;
+    }
+
+    public Boolean getPyqDone() {
+        return pyqDone;
+    }
+
+    public void setPyqDone(Boolean pyqDone) {
+        this.pyqDone = pyqDone;
     }
 }

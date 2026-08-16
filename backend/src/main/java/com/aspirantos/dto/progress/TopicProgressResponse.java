@@ -10,6 +10,7 @@ public class TopicProgressResponse {
     private String topicCode;
     private String topicName;
     private ProgressStatus status;
+    private Boolean pyqDone = false;
     private UUID subjectId;
     private String subjectCode;
     private String subjectName;
@@ -17,11 +18,12 @@ public class TopicProgressResponse {
     public TopicProgressResponse() {
     }
 
-    public TopicProgressResponse(UUID topicId, String topicCode, String topicName, ProgressStatus status, UUID subjectId, String subjectCode, String subjectName) {
+    public TopicProgressResponse(UUID topicId, String topicCode, String topicName, ProgressStatus status, Boolean pyqDone, UUID subjectId, String subjectCode, String subjectName) {
         this.topicId = topicId;
         this.topicCode = topicCode;
         this.topicName = topicName;
         this.status = status;
+        this.pyqDone = pyqDone != null ? pyqDone : false;
         this.subjectId = subjectId;
         this.subjectCode = subjectCode;
         this.subjectName = subjectName;
@@ -36,6 +38,7 @@ public class TopicProgressResponse {
         private String topicCode;
         private String topicName;
         private ProgressStatus status;
+        private Boolean pyqDone = false;
         private UUID subjectId;
         private String subjectCode;
         private String subjectName;
@@ -60,6 +63,11 @@ public class TopicProgressResponse {
             return this;
         }
 
+        public Builder pyqDone(Boolean pyqDone) {
+            this.pyqDone = pyqDone != null ? pyqDone : false;
+            return this;
+        }
+
         public Builder subjectId(UUID subjectId) {
             this.subjectId = subjectId;
             return this;
@@ -76,7 +84,7 @@ public class TopicProgressResponse {
         }
 
         public TopicProgressResponse build() {
-            return new TopicProgressResponse(topicId, topicCode, topicName, status, subjectId, subjectCode, subjectName);
+            return new TopicProgressResponse(topicId, topicCode, topicName, status, pyqDone, subjectId, subjectCode, subjectName);
         }
     }
 
@@ -110,6 +118,14 @@ public class TopicProgressResponse {
 
     public void setStatus(ProgressStatus status) {
         this.status = status;
+    }
+
+    public Boolean getPyqDone() {
+        return pyqDone != null ? pyqDone : false;
+    }
+
+    public void setPyqDone(Boolean pyqDone) {
+        this.pyqDone = pyqDone != null ? pyqDone : false;
     }
 
     public UUID getSubjectId() {

@@ -18,7 +18,8 @@ import java.util.UUID;
                 @Index(name = "idx_progress_user", columnList = "user_id"),
                 @Index(name = "idx_progress_topic", columnList = "topic_id"),
                 @Index(name = "idx_progress_user_topic", columnList = "user_id, topic_id"),
-                @Index(name = "idx_progress_status", columnList = "status")
+                @Index(name = "idx_progress_status", columnList = "status"),
+                @Index(name = "idx_progress_pyq", columnList = "pyq_done")
         }
 )
 public class UserTopicProgress {
@@ -40,6 +41,9 @@ public class UserTopicProgress {
     @Column(name = "status", nullable = false, length = 30)
     private ProgressStatus status = ProgressStatus.NOT_STARTED;
 
+    @Column(name = "pyq_done", nullable = false)
+    private Boolean pyqDone = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -51,11 +55,12 @@ public class UserTopicProgress {
     public UserTopicProgress() {
     }
 
-    public UserTopicProgress(UUID id, User user, SyllabusTopic topic, ProgressStatus status, Instant createdAt, Instant updatedAt) {
+    public UserTopicProgress(UUID id, User user, SyllabusTopic topic, ProgressStatus status, Boolean pyqDone, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.user = user;
         this.topic = topic;
         this.status = status != null ? status : ProgressStatus.NOT_STARTED;
+        this.pyqDone = pyqDone != null ? pyqDone : false;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -69,6 +74,7 @@ public class UserTopicProgress {
         private User user;
         private SyllabusTopic topic;
         private ProgressStatus status = ProgressStatus.NOT_STARTED;
+        private Boolean pyqDone = false;
         private Instant createdAt;
         private Instant updatedAt;
 
@@ -92,6 +98,11 @@ public class UserTopicProgress {
             return this;
         }
 
+        public Builder pyqDone(Boolean pyqDone) {
+            this.pyqDone = pyqDone != null ? pyqDone : false;
+            return this;
+        }
+
         public Builder createdAt(Instant createdAt) {
             this.createdAt = createdAt;
             return this;
@@ -103,7 +114,7 @@ public class UserTopicProgress {
         }
 
         public UserTopicProgress build() {
-            return new UserTopicProgress(id, user, topic, status, createdAt, updatedAt);
+            return new UserTopicProgress(id, user, topic, status, pyqDone, createdAt, updatedAt);
         }
     }
 
@@ -137,6 +148,14 @@ public class UserTopicProgress {
 
     public void setStatus(ProgressStatus status) {
         this.status = status != null ? status : ProgressStatus.NOT_STARTED;
+    }
+
+    public Boolean getPyqDone() {
+        return pyqDone != null ? pyqDone : false;
+    }
+
+    public void setPyqDone(Boolean pyqDone) {
+        this.pyqDone = pyqDone != null ? pyqDone : false;
     }
 
     public Instant getCreatedAt() {

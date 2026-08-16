@@ -10,11 +10,15 @@ public class OverallProgressResponse {
     private int prelimsPercentage;
     private int mainsPercentage;
     private int optionalPercentage;
+    private int totalPyqDone;
+    private int pyqPercentage;
 
     public OverallProgressResponse() {
     }
 
-    public OverallProgressResponse(int totalTopics, int completedTopics, int inProgressTopics, int notStartedTopics, int completionPercentage, int prelimsPercentage, int mainsPercentage, int optionalPercentage) {
+    public OverallProgressResponse(int totalTopics, int completedTopics, int inProgressTopics, int notStartedTopics,
+                                   int completionPercentage, int prelimsPercentage, int mainsPercentage, int optionalPercentage,
+                                   int totalPyqDone, int pyqPercentage) {
         this.totalTopics = totalTopics;
         this.completedTopics = completedTopics;
         this.inProgressTopics = inProgressTopics;
@@ -23,6 +27,8 @@ public class OverallProgressResponse {
         this.prelimsPercentage = prelimsPercentage;
         this.mainsPercentage = mainsPercentage;
         this.optionalPercentage = optionalPercentage;
+        this.totalPyqDone = totalPyqDone;
+        this.pyqPercentage = pyqPercentage;
     }
 
     public static Builder builder() {
@@ -38,6 +44,8 @@ public class OverallProgressResponse {
         private int prelimsPercentage;
         private int mainsPercentage;
         private int optionalPercentage;
+        private int totalPyqDone;
+        private int pyqPercentage;
 
         public Builder totalTopics(int totalTopics) {
             this.totalTopics = totalTopics;
@@ -79,8 +87,20 @@ public class OverallProgressResponse {
             return this;
         }
 
+        public Builder totalPyqDone(int totalPyqDone) {
+            this.totalPyqDone = totalPyqDone;
+            return this;
+        }
+
+        public Builder pyqPercentage(int pyqPercentage) {
+            this.pyqPercentage = pyqPercentage;
+            return this;
+        }
+
         public OverallProgressResponse build() {
-            return new OverallProgressResponse(totalTopics, completedTopics, inProgressTopics, notStartedTopics, completionPercentage, prelimsPercentage, mainsPercentage, optionalPercentage);
+            return new OverallProgressResponse(totalTopics, completedTopics, inProgressTopics, notStartedTopics,
+                    completionPercentage, prelimsPercentage, mainsPercentage, optionalPercentage,
+                    totalPyqDone, pyqPercentage);
         }
     }
 
@@ -146,5 +166,21 @@ public class OverallProgressResponse {
 
     public void setOptionalPercentage(int optionalPercentage) {
         this.optionalPercentage = optionalPercentage;
+    }
+
+    public int getTotalPyqDone() {
+        return totalPyqDone;
+    }
+
+    public void setTotalPyqDone(int totalPyqDone) {
+        this.totalPyqDone = totalPyqDone;
+    }
+
+    public int getPyqPercentage() {
+        return pyqPercentage;
+    }
+
+    public void setPyqPercentage(int pyqPercentage) {
+        this.pyqPercentage = pyqPercentage;
     }
 }

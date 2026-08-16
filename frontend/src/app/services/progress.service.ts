@@ -18,25 +18,32 @@ export class ProgressService {
   private readonly baseUrl = `${environment.apiUrl}/progress`;
 
   /**
-   * Get overall UPSC preparation progress summary (overall, prelims, mains percentages)
+   * Get overall UPSC preparation progress summary (overall, prelims, mains percentages, pyq percentage)
    */
   getOverallProgress(): Observable<OverallProgressResponse> {
     return this.http.get<OverallProgressResponse>(this.baseUrl);
   }
 
   /**
-   * Get progress for a specific syllabus topic (defaults to NOT_STARTED)
+   * Get progress for a specific syllabus topic
    */
   getTopicProgress(topicId: string): Observable<TopicProgressResponse> {
     return this.http.get<TopicProgressResponse>(`${this.baseUrl}/topics/${topicId}`);
   }
 
   /**
-   * Update completion status for a syllabus topic
+   * Update completion status and/or PYQ for a syllabus topic
    */
-  updateTopicProgress(topicId: string, status: ProgressStatus): Observable<TopicProgressResponse> {
-    const body: ProgressStatusRequest = { status };
+  updateTopicProgress(topicId: string, status?: ProgressStatus, pyqDone?: boolean): Observable<TopicProgressResponse> {
+    const body: ProgressStatusRequest = { status, pyqDone };
     return this.http.put<TopicProgressResponse>(`${this.baseUrl}/topics/${topicId}`, body);
+  }
+
+  /**
+   * Toggle PYQ solved state for a topic
+   */
+  toggleTopicPyq(topicId: string): Observable<TopicProgressResponse> {
+    return this.http.post<TopicProgressResponse>(`${this.baseUrl}/topics/${topicId}/pyq/toggle`, {});
   }
 
   /**
@@ -51,5 +58,12 @@ export class ProgressService {
    */
   getAllProgressMap(): Observable<Record<string, ProgressStatus>> {
     return this.http.get<Record<string, ProgressStatus>>(`${this.baseUrl}/all`);
+  }
+
+  /**
+   * Bulk retrieve all user topic PYQ records as a mapping of topicId -> Boolean
+   */
+  getAllPyqMap(): Observable<Record<string, boolean>> {
+    return this.http.get<Record<string, boolean>>(`${this.baseUrl}/pyq-map`);
   }
 }

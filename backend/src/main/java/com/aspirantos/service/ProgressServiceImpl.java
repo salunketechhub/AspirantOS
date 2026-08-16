@@ -84,6 +84,11 @@ public class ProgressServiceImpl implements ProgressService {
                 ? (int) Math.round((double) optionalCompleted / optionalTotal * 100.0)
                 : 0;
 
+        int totalPyqDone = (int) progressRepository.countByUserIdAndPyqDoneTrue(userId);
+        int pyqPercentage = totalTopics > 0
+                ? (int) Math.round((double) totalPyqDone / totalTopics * 100.0)
+                : 0;
+
         return OverallProgressResponse.builder()
                 .totalTopics(totalTopics)
                 .completedTopics(completedTopics)
@@ -93,6 +98,8 @@ public class ProgressServiceImpl implements ProgressService {
                 .prelimsPercentage(prelimsPercentage)
                 .mainsPercentage(mainsPercentage)
                 .optionalPercentage(optionalPercentage)
+                .totalPyqDone(totalPyqDone)
+                .pyqPercentage(pyqPercentage)
                 .build();
     }
 
@@ -103,44 +110,66 @@ public class ProgressServiceImpl implements ProgressService {
         SyllabusTopic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Syllabus topic not found with ID: " + topicId));
 
-        ProgressStatus status = progressRepository.findByUserIdAndTopicId(currentUser.getId(), topicId)
-                .map(UserTopicProgress::getStatus)
-                .orElse(ProgressStatus.NOT_STARTED);
+        Optional<UserTopicProgress> utp = progressRepository.findByUserIdAndTopicId(currentUser.getId(), topicId);
+        ProgressStatus status = utp.map(UserTopicProgress::getStatus).orElse(ProgressStatus.NOT_STARTED);
+        Boolean pyqDone = utp.map(UserTopicProgress::getPyqDone).orElse(false);
 
-        return mapToTopicProgressResponse(topic, status);
+        return mapToTopicProgressResponse(topic, status, pyqDone);
     }
 
     @Override
     @Transactional
     public TopicProgressResponse updateTopicProgress(UUID topicId, ProgressStatus status) {
+        return updateTopicProgress(topicId, status, null);
+    }
+
+    @Override
+    @Transactional
+    public TopicProgressResponse updateTopicProgress(UUID topicId, ProgressStatus status, Boolean pyqDone) {
         User currentUser = getAuthenticatedUser();
         SyllabusTopic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Syllabus topic not found with ID: " + topicId));
 
         Optional<UserTopicProgress> existing = progressRepository.findByUserIdAndTopicId(currentUser.getId(), topicId);
 
-        if (status == ProgressStatus.NOT_STARTED) {
+        ProgressStatus finalStatus = status != null ? status : existing.map(UserTopicProgress::getStatus).orElse(ProgressStatus.NOT_STARTED);
+        boolean finalPyqDone = pyqDone != null ? pyqDone : existing.map(UserTopicProgress::getPyqDone).orElse(false);
+
+        if (finalStatus == ProgressStatus.NOT_STARTED && !finalPyqDone) {
             existing.ifPresent(progressRepository::delete);
-            log.debug("Removed progress record for user {} and topic {} (status: NOT_STARTED)", currentUser.getId(), topicId);
-            return mapToTopicProgressResponse(topic, ProgressStatus.NOT_STARTED);
+            log.debug("Removed progress record for user {} and topic {}", currentUser.getId(), topicId);
+            return mapToTopicProgressResponse(topic, ProgressStatus.NOT_STARTED, false);
         }
 
         UserTopicProgress progressRecord;
         if (existing.isPresent()) {
             progressRecord = existing.get();
-            progressRecord.setStatus(status);
+            progressRecord.setStatus(finalStatus);
+            progressRecord.setPyqDone(finalPyqDone);
         } else {
             progressRecord = UserTopicProgress.builder()
                     .user(currentUser)
                     .topic(topic)
-                    .status(status)
+                    .status(finalStatus)
+                    .pyqDone(finalPyqDone)
                     .build();
         }
 
         progressRepository.save(progressRecord);
-        log.debug("Updated progress for user {} on topic {} to {}", currentUser.getId(), topicId, status);
+        log.debug("Updated progress for user {} on topic {} (status: {}, pyqDone: {})", currentUser.getId(), topicId, finalStatus, finalPyqDone);
 
-        return mapToTopicProgressResponse(topic, status);
+        return mapToTopicProgressResponse(topic, finalStatus, finalPyqDone);
+    }
+
+    @Override
+    @Transactional
+    public TopicProgressResponse togglePyqDone(UUID topicId) {
+        User currentUser = getAuthenticatedUser();
+        Optional<UserTopicProgress> existing = progressRepository.findByUserIdAndTopicId(currentUser.getId(), topicId);
+        boolean currentPyq = existing.map(UserTopicProgress::getPyqDone).orElse(false);
+        ProgressStatus currentStatus = existing.map(UserTopicProgress::getStatus).orElse(ProgressStatus.NOT_STARTED);
+
+        return updateTopicProgress(topicId, currentStatus, !currentPyq);
     }
 
     @Override
@@ -189,6 +218,22 @@ public class ProgressServiceImpl implements ProgressService {
         return progressMap;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, Boolean> getAllTopicPyqMap() {
+        User currentUser = getAuthenticatedUser();
+        List<UserTopicProgress> userProgressList = progressRepository.findByUserId(currentUser.getId());
+
+        Map<UUID, Boolean> pyqMap = new HashMap<>();
+        for (UserTopicProgress utp : userProgressList) {
+            if (Boolean.TRUE.equals(utp.getPyqDone())) {
+                pyqMap.put(utp.getTopic().getId(), true);
+            }
+        }
+
+        return pyqMap;
+    }
+
     private User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -201,13 +246,14 @@ public class ProgressServiceImpl implements ProgressService {
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found in database"));
     }
 
-    private TopicProgressResponse mapToTopicProgressResponse(SyllabusTopic topic, ProgressStatus status) {
+    private TopicProgressResponse mapToTopicProgressResponse(SyllabusTopic topic, ProgressStatus status, Boolean pyqDone) {
         Subject subject = topic.getSubject();
         return TopicProgressResponse.builder()
                 .topicId(topic.getId())
                 .topicCode(topic.getCode())
                 .topicName(topic.getName())
                 .status(status)
+                .pyqDone(pyqDone != null ? pyqDone : false)
                 .subjectId(subject != null ? subject.getId() : null)
                 .subjectCode(subject != null ? subject.getCode() : null)
                 .subjectName(subject != null ? subject.getName() : null)

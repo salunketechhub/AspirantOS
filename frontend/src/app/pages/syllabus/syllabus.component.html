@@ -246,13 +246,21 @@
               <span class="flex items-center text-slate-500">
                 <span class="mr-1">○</span> {{ subjectNotStartedTopics() }} Left
               </span>
+              <span class="hidden sm:flex items-center text-sky-400 border-l border-slate-800 pl-3">
+                <span class="mr-1">📋</span> PYQs: {{ subjectPyqSolvedCount() }}/{{ subjectTotalTopics() }} Solved
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Topics Counter -->
-        <div class="text-xs text-slate-400">
-          Showing <strong class="text-white">{{ filteredTopics().length }}</strong> topics in this paper
+        <!-- Topics Counter & PYQ Summary -->
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div>
+            Showing <strong class="text-white">{{ filteredTopics().length }}</strong> topics in this paper
+          </div>
+          <div class="sm:hidden text-sky-400 text-[11px] font-medium">
+            📋 PYQs: {{ subjectPyqSolvedCount() }}/{{ subjectTotalTopics() }} Solved
+          </div>
         </div>
 
         <!-- Loading State -->
@@ -275,7 +283,7 @@
           </button>
         </div>
 
-        <!-- Flat Topics List with Status Controls -->
+        <!-- Flat Topics List with Status Controls & PYQ Tracker -->
         <div *ngIf="!isTopicsLoading() && filteredTopics().length > 0" class="space-y-3">
 
           <div
@@ -285,7 +293,7 @@
             [class.border-amber-500/50]="getTopicStatus(topic.id) === 'IN_PROGRESS'"
           >
             <div class="space-y-1.5 max-w-2xl">
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                 <span class="px-2 py-0.5 bg-slate-800 text-slate-300 font-mono text-[10px] rounded border border-slate-700">
                   {{ topic.code }}
                 </span>
@@ -301,6 +309,12 @@
                 >
                   ◐ In Progress
                 </span>
+                <span
+                  *ngIf="isTopicPyqDone(topic.id)"
+                  class="px-1.5 py-0.5 bg-sky-950/80 text-sky-300 text-[10px] rounded font-medium border border-sky-800/60"
+                >
+                  📋 PYQ Done
+                </span>
               </div>
 
               <h3 class="font-display font-semibold text-sm sm:text-base text-white">
@@ -312,8 +326,29 @@
               </p>
             </div>
 
-            <!-- Topic Status Dropdown Selector -->
-            <div class="shrink-0 flex items-center space-x-2 self-end sm:self-center">
+            <!-- Topic Status Dropdown Selector & PYQ Button -->
+            <div class="shrink-0 flex items-center space-x-2.5 self-end sm:self-center">
+              
+              <!-- 1-Click PYQ Done/Pending Button -->
+              <button
+                type="button"
+                (click)="onTogglePyq(topic.id)"
+                [class.bg-sky-500/15]="isTopicPyqDone(topic.id)"
+                [class.text-sky-300]="isTopicPyqDone(topic.id)"
+                [class.border-sky-500/50]="isTopicPyqDone(topic.id)"
+                [class.bg-slate-900]="!isTopicPyqDone(topic.id)"
+                [class.text-slate-400]="!isTopicPyqDone(topic.id)"
+                [class.border-slate-800]="!isTopicPyqDone(topic.id)"
+                [class.hover:border-slate-700]="!isTopicPyqDone(topic.id)"
+                class="px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer flex items-center space-x-1.5 active:scale-95 select-none"
+                title="Toggle PYQ solved state for this topic"
+              >
+                <span *ngIf="isTopicPyqDone(topic.id)" class="text-sky-400 font-bold">✓</span>
+                <span *ngIf="!isTopicPyqDone(topic.id)" class="text-slate-500 font-bold">○</span>
+                <span>PYQ {{ isTopicPyqDone(topic.id) ? 'Done' : 'Pending' }}</span>
+              </button>
+
+              <!-- Topic Status Dropdown Selector -->
               <select
                 [ngModel]="getTopicStatus(topic.id)"
                 (ngModelChange)="onStatusChange(topic.id, $event)"

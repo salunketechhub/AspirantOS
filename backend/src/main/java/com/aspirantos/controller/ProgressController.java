@@ -23,7 +23,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/progress")
-@Tag(name = "Progress Tracking", description = "Endpoints for tracking user syllabus topic completion progress")
+@Tag(name = "Progress Tracking", description = "Endpoints for tracking user syllabus topic completion progress and PYQ tracker")
 @SecurityRequirement(name = "Bearer Authentication")
 public class ProgressController {
 
@@ -45,7 +45,7 @@ public class ProgressController {
     }
 
     @GetMapping("/topics/{topicId}")
-    @Operation(summary = "Get topic progress status", description = "Retrieves current completion status for a specific syllabus topic (defaults to NOT_STARTED)")
+    @Operation(summary = "Get topic progress status", description = "Retrieves current completion status and PYQ status for a specific syllabus topic")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Topic progress retrieved successfully",
                     content = @Content(schema = @Schema(implementation = TopicProgressResponse.class))),
@@ -60,20 +60,38 @@ public class ProgressController {
     }
 
     @PutMapping("/topics/{topicId}")
-    @Operation(summary = "Update topic completion status", description = "Updates status of a topic for the authenticated user to NOT_STARTED, IN_PROGRESS, or COMPLETED")
+    @Operation(summary = "Update topic completion status & PYQ", description = "Updates status and/or PYQ done state of a topic for the authenticated user")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Topic status updated successfully",
                     content = @Content(schema = @Schema(implementation = TopicProgressResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid request payload or status value"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid JWT token"),
             @ApiResponse(responseCode = "404", description = "Topic not found")
     })
     public ResponseEntity<TopicProgressResponse> updateTopicProgress(
             @Parameter(description = "Syllabus topic UUID", required = true)
             @PathVariable UUID topicId,
-            @Valid @RequestBody ProgressStatusRequest request
+            @RequestBody ProgressStatusRequest request
     ) {
+        if (request.getPyqDone() != null) {
+            return ResponseEntity.ok(progressService.updateTopicProgress(topicId, request.getStatus(), request.getPyqDone()));
+        }
         return ResponseEntity.ok(progressService.updateTopicProgress(topicId, request.getStatus()));
+    }
+
+    @PostMapping("/topics/{topicId}/pyq/toggle")
+    @Operation(summary = "Toggle topic PYQ status", description = "Toggles PYQ solved state (true/false) for a syllabus topic")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PYQ status toggled successfully",
+                    content = @Content(schema = @Schema(implementation = TopicProgressResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid JWT token"),
+            @ApiResponse(responseCode = "404", description = "Topic not found")
+    })
+    public ResponseEntity<TopicProgressResponse> toggleTopicPyq(
+            @Parameter(description = "Syllabus topic UUID", required = true)
+            @PathVariable UUID topicId
+    ) {
+        return ResponseEntity.ok(progressService.togglePyqDone(topicId));
     }
 
     @GetMapping("/subjects/{subjectId}")
@@ -99,5 +117,15 @@ public class ProgressController {
     })
     public ResponseEntity<Map<UUID, ProgressStatus>> getAllTopicProgressMap() {
         return ResponseEntity.ok(progressService.getAllTopicProgressMap());
+    }
+
+    @GetMapping("/pyq-map")
+    @Operation(summary = "Get all topic PYQ statuses as a map", description = "Retrieves all topicId -> pyqDone mappings for fast bulk hydration")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All PYQ mappings retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid JWT token")
+    })
+    public ResponseEntity<Map<UUID, Boolean>> getAllTopicPyqMap() {
+        return ResponseEntity.ok(progressService.getAllTopicPyqMap());
     }
 }

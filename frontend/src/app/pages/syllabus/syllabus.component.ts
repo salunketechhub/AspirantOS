@@ -36,6 +36,9 @@ export class SyllabusComponent implements OnInit {
   // User progress mapping signal: topicId -> ProgressStatus
   readonly progressMap = signal<Record<string, ProgressStatus>>({});
 
+  // User PYQ mapping signal: topicId -> Boolean
+  readonly pyqMap = signal<Record<string, boolean>>({});
+
   // Navigation & interaction signals (3 main tabs: PRELIMS, MAINS, OPTIONALS)
   readonly activeTab = signal<'PRELIMS' | 'MAINS' | 'OPTIONALS'>('PRELIMS');
   readonly optionalViewMode = signal<'SOCIOLOGY_TRACKER' | 'CATALOGUE'>('SOCIOLOGY_TRACKER');
@@ -118,6 +121,12 @@ export class SyllabusComponent implements OnInit {
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   });
 
+  // Subject PYQ solved count
+  readonly subjectPyqSolvedCount = computed(() => {
+    const map = this.pyqMap();
+    return this.allTopicIdsInSubject().filter((id) => !!map[id]).length;
+  });
+
   ngOnInit(): void {
     this.loadInitialData();
   }
@@ -126,9 +135,14 @@ export class SyllabusComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    // 1. Fetch user progress map in bulk
+    // 1. Fetch user progress map & PYQ map in bulk
     this.progressService.getAllProgressMap().subscribe({
       next: (map) => this.progressMap.set(map || {}),
+      error: () => {},
+    });
+
+    this.progressService.getAllPyqMap().subscribe({
+      next: (map) => this.pyqMap.set(map || {}),
       error: () => {},
     });
 
@@ -229,6 +243,10 @@ export class SyllabusComponent implements OnInit {
     return this.progressMap()[topicId] || 'NOT_STARTED';
   }
 
+  isTopicPyqDone(topicId: string): boolean {
+    return !!this.pyqMap()[topicId];
+  }
+
   onStatusChange(topicId: string, newStatus: ProgressStatus): void {
     const previousStatus = this.getTopicStatus(topicId);
     if (previousStatus === newStatus) return;
@@ -240,6 +258,9 @@ export class SyllabusComponent implements OnInit {
     this.progressService.updateTopicProgress(topicId, newStatus).subscribe({
       next: (res) => {
         this.progressMap.update((map) => ({ ...map, [topicId]: res.status }));
+        if (res.pyqDone !== undefined) {
+          this.pyqMap.update((map) => ({ ...map, [topicId]: res.pyqDone }));
+        }
         this.updatingTopicId.set(null);
       },
       error: (err) => {
@@ -247,6 +268,25 @@ export class SyllabusComponent implements OnInit {
         this.progressMap.update((map) => ({ ...map, [topicId]: previousStatus }));
         this.updatingTopicId.set(null);
         this.errorMessage.set(err?.error?.message || 'Failed to update topic status.');
+      },
+    });
+  }
+
+  onTogglePyq(topicId: string): void {
+    const currentPyq = this.isTopicPyqDone(topicId);
+    const newPyq = !currentPyq;
+
+    // Optimistic UI mutation
+    this.pyqMap.update((map) => ({ ...map, [topicId]: newPyq }));
+
+    this.progressService.toggleTopicPyq(topicId).subscribe({
+      next: (res) => {
+        this.pyqMap.update((map) => ({ ...map, [topicId]: res.pyqDone }));
+      },
+      error: (err) => {
+        // Rollback on error
+        this.pyqMap.update((map) => ({ ...map, [topicId]: currentPyq }));
+        this.errorMessage.set(err?.error?.message || 'Failed to update PYQ status.');
       },
     });
   }

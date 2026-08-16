@@ -16,7 +16,13 @@ public interface ProgressService {
 
     TopicProgressResponse updateTopicProgress(UUID topicId, ProgressStatus status);
 
+    TopicProgressResponse updateTopicProgress(UUID topicId, ProgressStatus status, Boolean pyqDone);
+
+    TopicProgressResponse togglePyqDone(UUID topicId);
+
     SubjectProgressResponse getSubjectProgress(UUID subjectId);
 
     Map<UUID, ProgressStatus> getAllTopicProgressMap();
+
+    Map<UUID, Boolean> getAllTopicPyqMap();
 }
